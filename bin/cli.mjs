@@ -3,7 +3,7 @@
 // install|update|uninstall|verify|status  [--agent <name>|all] [--dry-run]
 //                                         [--with-rtk] [--with-headroom] [--statusline]
 
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -162,7 +162,16 @@ Options:
   --statusline         (claude-code) set a ccusage statusline if none is set
 `;
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+// npm/npx invoke bins through a symlink shim, so resolve argv[1] to its real
+// path before comparing — otherwise the CLI is silently a no-op under npx.
+const invokedAs = (() => {
+  try {
+    return pathToFileURL(realpathSync(process.argv[1] ?? "")).href;
+  } catch {
+    return "";
+  }
+})();
+if (import.meta.url === invokedAs) {
   try {
     const opts = parseArgs(process.argv.slice(2));
     switch (opts.command) {
