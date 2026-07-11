@@ -34,23 +34,23 @@ The layers are independent; each degrades gracefully if its binary is missing.
 
 ## 2. Install in one minute
 
-Local install for now (the package layout is npx-ready for later):
+Distributed from GitHub (not npm). npx caches GitHub installs — add `#main` to force the latest commit:
 
 ```bash
-git clone https://github.com/sipki-tech/scrooge-kit && cd scrooge-kit
-
 # see the exact plan first — nothing is written
-node bin/cli.mjs install --dry-run
+npx github:sipki-tech/scrooge-kit install --dry-run
 
 # install for every agent detected on this machine
-node bin/cli.mjs install
+npx github:sipki-tech/scrooge-kit install
 
 # or pick agents explicitly (comma-separated)
-node bin/cli.mjs install --agent claude-code,codex
+npx github:sipki-tech/scrooge-kit install --agent claude-code,codex
 
 # also install the binaries if you don't have them
-node bin/cli.mjs install --with-rtk --with-headroom
+npx github:sipki-tech/scrooge-kit install --with-rtk --with-headroom
 ```
+
+From a clone the same commands run as `node bin/cli.mjs <command>`.
 
 Flags:
 
@@ -67,8 +67,8 @@ Then **restart your agents** — hooks load at session start.
 Check the install any time:
 
 ```bash
-node bin/cli.mjs verify   # per-agent health checks, exit 1 on failure
-node bin/cli.mjs status   # detected agents, tool availability, spend report
+npx github:sipki-tech/scrooge-kit verify   # per-agent health checks, exit 1 on failure
+npx github:sipki-tech/scrooge-kit status   # detected agents, tool availability, spend report
 ```
 
 ## 3. What lands where
@@ -116,7 +116,7 @@ When the agent needs a huge log or file, the `scrooge-hygiene` skill tells it to
 Wiring notes:
 
 - The MCP server command is `headroom mcp serve` (in Headroom ≥0.28 `headroom mcp` alone is a command group, not a server).
-- Where a host supports it, the entry ships `"disabled": true` unless the binary is present — a missing binary can never break sessions. Re-run `node bin/cli.mjs install` after installing Headroom to flip entries on.
+- Where a host supports it, the entry ships `"disabled": true` unless the binary is present — a missing binary can never break sessions. Re-run `npx github:sipki-tech/scrooge-kit install` after installing Headroom to flip entries on.
 - Headroom also has an HTTP proxy mode (`headroom proxy`) that compresses all traffic via `ANTHROPIC_BASE_URL`/`OPENAI_BASE_URL`. The kit doesn't wire it — spike manually if you want it (see [headroom.md](headroom.md)).
 
 ## 6. Per-agent notes you'll actually hit
@@ -130,7 +130,7 @@ Wiring notes:
 ## 7. Monitoring
 
 ```bash
-node bin/cli.mjs status
+npx github:sipki-tech/scrooge-kit status
 ```
 
 Prints detected agents, rtk/headroom availability, then a ccusage spend report (Claude Code, Codex, Gemini CLI, OpenCode and more read from local logs). For an always-visible daily number in Claude Code, install with `--statusline`.
@@ -143,11 +143,11 @@ Follow [benchmark.md](benchmark.md): the same three tasks (feature / debug / ref
 
 | Symptom | Cause / fix |
 | --- | --- |
-| Commands aren't being rewritten | Agent session started before install — restart the agent. Then check `node bin/cli.mjs verify`. |
+| Commands aren't being rewritten | Agent session started before install — restart the agent. Then check `npx github:sipki-tech/scrooge-kit verify`. |
 | `rtk: command not found` after rewrite | Shouldn't happen (the hook probes PATH first); if the agent's PATH differs from your shell's, install rtk somewhere the agent sees, or `SCROOGE_RTK=off`. |
 | headroom MCP "Failed to connect" | The entry must be `headroom mcp serve`, not `headroom mcp`. Re-run install — old entries are pruned and re-added correctly. |
 | A hook seems to break a session | It can't (fail-open, exit 0 always) — but if you suspect it, `SCROOGE_RTK=off` neutralizes the rewriter without uninstalling. |
-| Want everything gone | `node bin/cli.mjs uninstall` — removes hooks, skills, MCP entries and `~/.scrooge-kit`; anything you edited survives. |
+| Want everything gone | `npx github:sipki-tech/scrooge-kit uninstall` — removes hooks, skills, MCP entries and `~/.scrooge-kit`; anything you edited survives. |
 
 ## 10. Safety model
 

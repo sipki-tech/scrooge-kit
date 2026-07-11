@@ -34,23 +34,23 @@ rtk запускает настоящую команду, срезает шум
 
 ## 2. Установка за минуту
 
-Пока локально (структура пакета уже готова к npx):
+Распространяется через GitHub (не npm). npx кэширует установки с GitHub — добавьте `#main`, чтобы взять последний коммит:
 
 ```bash
-git clone https://github.com/sipki-tech/scrooge-kit && cd scrooge-kit
-
 # сначала точный план — ничего не записывается
-node bin/cli.mjs install --dry-run
+npx github:sipki-tech/scrooge-kit install --dry-run
 
 # установить для всех обнаруженных агентов
-node bin/cli.mjs install
+npx github:sipki-tech/scrooge-kit install
 
 # или выбрать агентов явно (через запятую)
-node bin/cli.mjs install --agent claude-code,codex
+npx github:sipki-tech/scrooge-kit install --agent claude-code,codex
 
 # заодно поставить бинарники, если их нет
-node bin/cli.mjs install --with-rtk --with-headroom
+npx github:sipki-tech/scrooge-kit install --with-rtk --with-headroom
 ```
+
+Из клона те же команды запускаются как `node bin/cli.mjs <команда>`.
 
 Флаги:
 
@@ -67,8 +67,8 @@ node bin/cli.mjs install --with-rtk --with-headroom
 Проверить установку в любой момент:
 
 ```bash
-node bin/cli.mjs verify   # проверки по агентам, exit 1 при провале
-node bin/cli.mjs status   # обнаруженные агенты, наличие тулов, отчёт о расходе
+npx github:sipki-tech/scrooge-kit verify   # проверки по агентам, exit 1 при провале
+npx github:sipki-tech/scrooge-kit status   # обнаруженные агенты, наличие тулов, отчёт о расходе
 ```
 
 ## 3. Что куда ложится
@@ -116,7 +116,7 @@ SCROOGE_RTK=off            # переменная окружения: отклю
 Заметки по подключению:
 
 - Команда MCP-сервера — `headroom mcp serve` (в Headroom ≥0.28 голый `headroom mcp` — группа команд, а не сервер).
-- Где хост это поддерживает, запись идёт с `"disabled": true`, пока бинарника нет — отсутствующий бинарь не может сломать сессию. После установки Headroom перезапустите `node bin/cli.mjs install`, чтобы записи включились.
+- Где хост это поддерживает, запись идёт с `"disabled": true`, пока бинарника нет — отсутствующий бинарь не может сломать сессию. После установки Headroom перезапустите `npx github:sipki-tech/scrooge-kit install`, чтобы записи включились.
 - У Headroom есть и режим HTTP-прокси (`headroom proxy`), сжимающий весь трафик через `ANTHROPIC_BASE_URL`/`OPENAI_BASE_URL`. Кит его не подключает — пробуйте вручную (см. [headroom.md](headroom.md)).
 
 ## 6. Заметки по агентам, с которыми вы столкнётесь
@@ -130,7 +130,7 @@ SCROOGE_RTK=off            # переменная окружения: отклю
 ## 7. Мониторинг
 
 ```bash
-node bin/cli.mjs status
+npx github:sipki-tech/scrooge-kit status
 ```
 
 Печатает обнаруженных агентов, наличие rtk/headroom и отчёт ccusage о расходе (Claude Code, Codex, Gemini CLI, OpenCode и другие — из локальных логов). Для всегда видимой цифры в Claude Code — установка с `--statusline`.
@@ -143,11 +143,11 @@ node bin/cli.mjs status
 
 | Симптом | Причина / решение |
 | --- | --- |
-| Команды не переписываются | Сессия агента стартовала до установки — перезапустите агента. Затем `node bin/cli.mjs verify`. |
+| Команды не переписываются | Сессия агента стартовала до установки — перезапустите агента. Затем `npx github:sipki-tech/scrooge-kit verify`. |
 | `rtk: command not found` после перезаписи | Не должно случаться (хук сначала проверяет PATH); если PATH агента отличается от вашего шелла — поставьте rtk туда, где агент его видит, или `SCROOGE_RTK=off`. |
 | headroom MCP «Failed to connect» | Запись должна быть `headroom mcp serve`, а не `headroom mcp`. Перезапустите install — старые записи вычищаются и добавляются правильно. |
 | Кажется, что хук ломает сессию | Он не может (fail-open, всегда exit 0) — но если подозреваете, `SCROOGE_RTK=off` нейтрализует перезапись без удаления. |
-| Хочу убрать всё | `node bin/cli.mjs uninstall` — убирает хуки, скиллы, MCP-записи и `~/.scrooge-kit`; всё, что вы редактировали, остаётся. |
+| Хочу убрать всё | `npx github:sipki-tech/scrooge-kit uninstall` — убирает хуки, скиллы, MCP-записи и `~/.scrooge-kit`; всё, что вы редактировали, остаётся. |
 
 ## 10. Модель безопасности
 

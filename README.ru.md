@@ -68,21 +68,21 @@
 
 ## Установка
 
-Пока локально (не опубликован):
+Прямо с GitHub (в npm не публикуется; добавьте `#main`, чтобы обойти кэш npx):
 
 ```bash
-git clone https://github.com/sipki-tech/scrooge-kit && cd scrooge-kit
+npx github:sipki-tech/scrooge-kit install            # все обнаруженные агенты
+npx github:sipki-tech/scrooge-kit install --dry-run  # сначала посмотреть план действий
+npx github:sipki-tech/scrooge-kit install --agent claude-code,codex
+npx github:sipki-tech/scrooge-kit install --with-rtk --with-headroom  # заодно поставить бинарники
+npx github:sipki-tech/scrooge-kit install --statusline  # (claude-code) ccusage-statusline, если не задан
 
-node bin/cli.mjs install                     # все обнаруженные агенты
-node bin/cli.mjs install --dry-run           # сначала посмотреть план действий
-node bin/cli.mjs install --agent claude-code,codex
-node bin/cli.mjs install --with-rtk --with-headroom   # заодно поставить бинарники
-node bin/cli.mjs install --statusline        # (claude-code) ccusage-statusline, если не задан
-
-node bin/cli.mjs verify                      # проверки здоровья по агентам
-node bin/cli.mjs status                      # обнаруженные агенты + расход через ccusage
-node bin/cli.mjs uninstall                   # убирает ровно то, что добавили
+npx github:sipki-tech/scrooge-kit verify             # проверки здоровья по агентам
+npx github:sipki-tech/scrooge-kit status             # обнаруженные агенты + расход через ccusage
+npx github:sipki-tech/scrooge-kit uninstall          # убирает ровно то, что добавили
 ```
+
+Или из клона: `git clone https://github.com/sipki-tech/scrooge-kit && cd scrooge-kit && node bin/cli.mjs install`.
 
 Требуется Node 18+. После установки перезапустите агентов — хуки загружаются на старте сессии.
 

@@ -68,21 +68,21 @@ Per-agent details and caveats: [docs/agents.md](docs/agents.md).
 
 ## Install
 
-Local for now (not yet published):
+Straight from GitHub (not published to npm; add `#main` to skip the npx cache):
 
 ```bash
-git clone https://github.com/sipki-tech/scrooge-kit && cd scrooge-kit
+npx github:sipki-tech/scrooge-kit install            # all detected agents
+npx github:sipki-tech/scrooge-kit install --dry-run  # preview every action first
+npx github:sipki-tech/scrooge-kit install --agent claude-code,codex
+npx github:sipki-tech/scrooge-kit install --with-rtk --with-headroom  # also install the binaries
+npx github:sipki-tech/scrooge-kit install --statusline  # (claude-code) ccusage statusline if none set
 
-node bin/cli.mjs install                     # all detected agents
-node bin/cli.mjs install --dry-run           # preview every action first
-node bin/cli.mjs install --agent claude-code,codex
-node bin/cli.mjs install --with-rtk --with-headroom   # also install the binaries
-node bin/cli.mjs install --statusline        # (claude-code) ccusage statusline if none set
-
-node bin/cli.mjs verify                      # health checks per agent
-node bin/cli.mjs status                      # detected agents + spend via ccusage
-node bin/cli.mjs uninstall                   # removes exactly what we added
+npx github:sipki-tech/scrooge-kit verify             # health checks per agent
+npx github:sipki-tech/scrooge-kit status             # detected agents + spend via ccusage
+npx github:sipki-tech/scrooge-kit uninstall          # removes exactly what we added
 ```
+
+Or from a clone: `git clone https://github.com/sipki-tech/scrooge-kit && cd scrooge-kit && node bin/cli.mjs install`.
 
 Requires Node 18+. Restart your agents after install — hooks load at session start.
 
