@@ -1,8 +1,8 @@
 {
   "name": "@sipki-tech/scrooge-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Cross-agent token-saving plugin: routes terminal output through rtk, registers Headroom MCP compression, and reports spend via ccusage — for Claude Code, Codex, Gemini CLI, Antigravity, OpenCode, Grok CLI, Cursor and Windsurf.",
+  "description": "Native token-saving plugins for coding agents: rtk terminal-output compression, Headroom MCP blob compression, token-hygiene skill — Claude Code, Codex, Gemini CLI, Antigravity, Grok, OpenCode, Cursor.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -13,20 +13,10 @@
     "url": "https://github.com/sipki-tech/scrooge-kit/issues"
   },
   "type": "module",
-  "bin": {
-    "scrooge-kit": "bin/cli.mjs"
-  },
-  "files": [
-    "bin/",
-    "core/",
-    "adapters/",
-    "payload/",
-    "docs/",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "sync": "node scripts/sync.mjs",
+    "pack:gemini": "node scripts/pack-gemini.mjs"
   },
   "engines": {
     "node": ">=18"
@@ -34,17 +24,17 @@
   "keywords": [
     "agent",
     "plugin",
+    "marketplace",
     "token-optimization",
     "rtk",
     "headroom",
-    "ccusage",
     "claude-code",
     "codex",
     "gemini-cli",
     "antigravity",
+    "grok",
     "opencode",
     "cursor",
-    "windsurf",
     "mcp",
     "hooks"
   ]

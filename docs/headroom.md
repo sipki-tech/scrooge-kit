@@ -9,11 +9,16 @@ terminal command output --> [rtk: output compression]    --> agent context
 agent context / files   --> [Headroom: blob compression] --> LLM API
 ```
 
-## Supported mode: MCP server (v1)
+## Supported mode: MCP server
 
-scrooge-kit registers a `headroom` MCP entry for every agent it installs into. If the `headroom` binary is present at install time the entry is enabled; otherwise it is written with `"disabled": true` (or skipped where the host has no disabled semantics) so a missing binary can never break sessions.
+How each plugin ships it (a missing binary must never break sessions):
 
-1. Install the CLI: `pip install "headroom-ai[all]"` (Python 3.10+), or re-run `scrooge-kit install --with-headroom`.
+- **Claude Code**: separate `scrooge-headroom` plugin — install it only when the binary exists.
+- **Antigravity**: pre-registered in the plugin's `mcp_config.json` with `"disabled": true`; remove the key after installing the binary.
+- **OpenCode**: the npm plugin registers the server at startup only when the binary is detected.
+- **Others**: add manually per GUIDE §3 once the binary works.
+
+1. Install the CLI: `pip install "headroom-ai[all]"` (Python 3.10+; or `uv tool install` / `pipx install`).
 2. Restart the agent. Three tools become available:
    - `headroom_compress` — compress a large blob before it enters the context;
    - `headroom_retrieve` — fetch the original of a compressed block (reversible, cached with a TTL);

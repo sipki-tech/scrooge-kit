@@ -1,0 +1,24 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+      - run: node scripts/pack-gemini.mjs
+      - name: Create GitHub Release with the Gemini extension archive
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/scrooge-kit.gemini-extension.tar.gz
+          generate_release_notes: true

@@ -1,0 +1,27 @@
+{
+  "name": "scrooge-kit",
+  "owner": {
+    "name": "sipki-tech",
+    "url": "https://github.com/sipki-tech"
+  },
+  "description": "Token-saving plugins: rtk terminal-output compression, Headroom MCP blob compression, token-hygiene skill.",
+  "metadata": {
+    "version": "0.2.0"
+  },
+  "plugins": [
+    {
+      "name": "scrooge-kit",
+      "source": "./plugins/claude-code",
+      "description": "Transparently routes terminal commands through rtk (60-90% output compression) + token-hygiene skill.",
+      "category": "productivity",
+      "tags": ["tokens", "cost", "rtk", "compression"]
+    },
+    {
+      "name": "scrooge-headroom",
+      "source": "./plugins/claude-code-headroom",
+      "description": "Headroom MCP server (headroom_compress / headroom_retrieve / headroom_stats). Install only if the `headroom` CLI is on PATH: pip install \"headroom-ai[all]\".",
+      "category": "productivity",
+      "tags": ["tokens", "compression", "mcp", "headroom"]
+    }
+  ]
+}

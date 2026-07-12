@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|bash|shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/scripts/rtk-rewriter.mjs\" grok"
+          }
+        ]
+      }
+    ]
+  }
+}

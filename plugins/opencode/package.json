@@ -1,0 +1,30 @@
+{
+  "name": "@sipki-tech/scrooge-kit-opencode",
+  "version": "0.2.0",
+  "description": "OpenCode plugin: transparently routes terminal commands through rtk (60-90% output compression) and registers the Headroom MCP server when the binary is present.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sipki-tech/scrooge-kit.git",
+    "directory": "plugins/opencode"
+  },
+  "homepage": "https://github.com/sipki-tech/scrooge-kit#readme",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "tokens",
+    "rtk",
+    "headroom",
+    "compression"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

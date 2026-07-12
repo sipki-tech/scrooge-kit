@@ -1,0 +1,8 @@
+{
+  "name": "scrooge-kit",
+  "version": "0.2.0",
+  "description": "Token-saving kit: rules + skill teaching the agent to prefix dev commands with rtk (60-90% output compression) and keep logs out of the context. Needs the rtk binary (brew install rtk).",
+  "author": "sipki-tech",
+  "repository": "https://github.com/sipki-tech/scrooge-kit",
+  "license": "MIT"
+}

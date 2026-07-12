@@ -1,0 +1,21 @@
+{
+  "name": "scrooge-kit",
+  "version": "0.2.0",
+  "description": "Token-saving kit: nudges terminal commands through rtk (60-90% output compression), token-hygiene skill and rules, Headroom MCP (disabled until the binary is installed).",
+  "author": {
+    "name": "sipki-tech"
+  },
+  "repository": "https://github.com/sipki-tech/scrooge-kit",
+  "license": "MIT",
+  "keywords": ["tokens", "cost", "rtk", "headroom", "hooks"],
+  "skills": "./skills",
+  "rules": "./rules",
+  "hooks": "./hooks.json",
+  "interface": {
+    "displayName": "Scrooge Kit",
+    "shortDescription": "rtk command-output compression + token hygiene for Antigravity.",
+    "category": "Developer Tools",
+    "capabilities": ["Hooks", "Skills", "Rules", "MCP", "Token Optimization"],
+    "brandColor": "#F4C542"
+  }
+}

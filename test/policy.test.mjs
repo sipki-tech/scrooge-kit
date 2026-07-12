@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { rewriteCommand, PREFIXES } from "../payload/scripts/lib/policy.mjs";
+import { rewriteCommand, PREFIXES } from "../shared/scripts/lib/policy.mjs";
 
 test("rewrites plain dev commands", () => {
   assert.equal(rewriteCommand("git status"), "rtk git status");

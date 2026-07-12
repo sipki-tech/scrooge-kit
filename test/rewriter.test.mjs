@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { handle } from "../payload/scripts/rtk-rewriter.mjs";
+import { handle } from "../shared/scripts/rtk-rewriter.mjs";
 
 const SCRIPT = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
-  "payload",
+  "shared",
   "scripts",
   "rtk-rewriter.mjs",
 );

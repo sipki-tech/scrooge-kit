@@ -1,0 +1,11 @@
+{
+  "name": "scrooge-kit",
+  "version": "0.2.0",
+  "description": "Token-saving kit: transparently routes terminal commands through rtk (60-90% output compression) and teaches token hygiene. Bypass with SCROOGE_RAW=1; needs the rtk binary (brew install rtk).",
+  "author": {
+    "name": "sipki-tech",
+    "url": "https://github.com/sipki-tech"
+  },
+  "homepage": "https://github.com/sipki-tech/scrooge-kit",
+  "license": "MIT"
+}

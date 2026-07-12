@@ -2,13 +2,13 @@
 
 [English](GUIDE.md) | Русский
 
-Всё для повседневной работы со Scrooge Kit: что он реально делает с агентами, как поставить и проверить, как обойти, когда нужен сырой вывод, и как замерить экономию.
+Как работают плагины, как ставить их нативно по агентам, как обходить перезапись, когда нужен сырой вывод, и как замерить экономию.
 
 ---
 
 ## 1. Идея за 60 секунд
 
-Кодинг-агенты сжигают контекст на трёх вещах: вывод терминала, большие файлы/логи и перечитывание уже виденного. Scrooge Kit бьёт по первым двум готовыми проверенными инструментами и даёт видимость по третьей:
+Кодинг-агенты сжигают контекст в основном на выводе терминала и больших блобах. Scrooge Kit поставляет **нативный плагин для каждого агента**, бьющий по обоим:
 
 ```
 вы: «прогони тесты»
@@ -24,78 +24,80 @@ rtk запускает настоящую команду, срезает шум
 в контекст агента попадает ~10–40% исходного вывода — падения на месте
 ```
 
-Три слоя, три инструмента:
+Три слоя:
 
-1. **rtk** (терминал) — хук выше. Прозрачно: агент сам префикс не печатает.
-2. **Headroom** (блобы) — MCP-сервер с `headroom_compress` / `headroom_retrieve` / `headroom_stats`. Скилл `scrooge-hygiene` учит агента прогонять огромные логи через него. Сжатие обратимо — оригиналы кэшируются и достаются по требованию.
-3. **ccusage** (видимость) — `scrooge-kit status` показывает расход токенов по агентам из их локальных логов.
+1. **rtk** (терминал) — хук выше; прозрачный там, где хост умеет переписывать input, совещательный в остальных.
+2. **Headroom** (блобы) — MCP-инструменты `headroom_compress` / `headroom_retrieve` / `headroom_stats`; скилл `scrooge-hygiene` учит агента ими пользоваться. Обратимо — оригиналы кэшируются.
+3. **Скилл + rules** — выборочное чтение, никаких сырых логов, этикет обходов.
 
-Слои независимы; каждый мягко деградирует, если его бинарник отсутствует.
+Каждый слой мягко деградирует: нет бинаря rtk → хуки тихо бездействуют; нет headroom → его MCP-плагин просто не ставится (или идёт выключенным).
 
-## 2. Установка за минуту
-
-Распространяется через GitHub (не npm). npx кэширует установки с GitHub — добавьте `#main`, чтобы взять последний коммит:
+## 2. Предусловия
 
 ```bash
-# сначала точный план — ничего не записывается
-npx github:sipki-tech/scrooge-kit install --dry-run
-
-# установить для всех обнаруженных агентов
-npx github:sipki-tech/scrooge-kit install
-
-# или выбрать агентов явно (через запятую)
-npx github:sipki-tech/scrooge-kit install --agent claude-code,codex
-
-# заодно поставить бинарники, если их нет
-npx github:sipki-tech/scrooge-kit install --with-rtk --with-headroom
+brew install rtk                     # или: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
+pip install "headroom-ai[all]"       # опционально, Python 3.10+; или uv tool install / pipx install
 ```
 
-Из клона те же команды запускаются как `node bin/cli.mjs <команда>`.
+## 3. Установка по агентам
 
-Флаги:
+### Claude Code
+```
+/plugin marketplace add sipki-tech/scrooge-kit
+/plugin install scrooge-kit@scrooge-kit
+/plugin install scrooge-headroom@scrooge-kit    # только если `headroom` на PATH
+```
+Неинтерактивно: `claude plugin install scrooge-kit@scrooge-kit --scope user`. Headroom MCP — **отдельный плагин**, потому что MCP-серверы в плагинах Claude Code нельзя шипнуть выключенными: установка без бинаря показывала бы ошибки подключения.
 
-| Флаг | Эффект |
-| --- | --- |
-| `--agent <имя>\|all` | Целевые агенты. Известны: claude-code, codex, gemini-cli, antigravity, opencode, grok, cursor, windsurf |
-| `--dry-run` | Напечатать журнал действий, ничего не трогая |
-| `--with-rtk` | Установить бинарник rtk (brew или официальный скрипт) |
-| `--with-headroom` | Установить CLI Headroom (uv/pipx/pip3) |
-| `--statusline` | (claude-code) поставить ccusage-statusline — только если никакого нет |
-
-Затем **перезапустите агентов** — хуки загружаются на старте сессии.
-
-Проверить установку в любой момент:
-
+### Codex CLI (≥0.144)
 ```bash
-npx github:sipki-tech/scrooge-kit verify   # проверки по агентам, exit 1 при провале
-npx github:sipki-tech/scrooge-kit status   # обнаруженные агенты, наличие тулов, отчёт о расходе
+codex plugin marketplace add https://github.com/sipki-tech/scrooge-kit
+codex plugin add scrooge-kit@scrooge-kit
 ```
+Codex читает тот же `.claude-plugin/marketplace.json`; выделенный `plugins/codex/` (`.codex-plugin`) тоже есть — используйте то, что резолвит ваш билд.
 
-## 3. Что куда ложится
+### Grok Build
+```
+grok plugin marketplace add sipki-tech/scrooge-kit
+```
+затем установка из панели `/plugin` (Grok читает Claude-маркетплейсы). Ручной фолбэк: скопировать `plugins/grok/` в `~/.grok/plugins/scrooge-kit/`.
 
-Один общий payload плюс тонкое касание на агента:
+### Gemini CLI
+```bash
+gemini extensions install https://github.com/sipki-tech/scrooge-kit
+```
+Тянет ассет `scrooge-kit.gemini-extension.tar.gz` из последнего GitHub Release. Dev/локально: `gemini extensions link ./plugins/gemini-cli`. Хук использует событие Gemini `BeforeTool`; расширения с хуками спрашивают согласие при установке.
 
-| Цель | Что записывается |
-| --- | --- |
-| `~/.scrooge-kit/` | Общий payload: хук-скрипты, политика перезаписи, скилл, rules. Хуки всех агентов ссылаются на эту единственную копию. |
-| `~/.claude/settings.json` | PreToolUse-хук (matcher `Bash`); скилл в `~/.claude/skills/scrooge-hygiene/`; headroom через `claude mcp add` |
-| `~/.gemini/extensions/scrooge-kit/` | Расширение Gemini CLI: манифест + правила GEMINI.md + хуки + скилл |
-| `~/.gemini/config/plugins/scrooge-kit/` | Плагин Antigravity (зеркалится в `antigravity-cli/plugins`, если есть); headroom мержится в `mcp_config.json` |
-| `~/.codex/config.toml`, `~/.codex/AGENTS.md` | Блоки в маркерах (`# >>> scrooge-kit >>>`); скилл в `~/.codex/skills/` |
-| `~/.config/opencode/plugin/scrooge-kit.js` | Сгенерированный плагин, меняющий args внутри процесса; headroom в `opencode.json` |
-| `~/.grok/settings.json` | Хуки в стиле Claude + `mcpServers.headroom` |
-| `~/.cursor/hooks.json`, `~/.cursor/mcp.json` | Хук-подсказка + MCP (Cursor переписывать не умеет — см. §6) |
-| `~/.codeium/windsurf/` | Rules дописываются в `memories/global_rules.md` + MCP-запись |
+### Antigravity (agy)
+```bash
+git clone https://github.com/sipki-tech/scrooge-kit
+agy plugin install ./scrooge-kit/plugins/antigravity
+```
+Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom прописан в `mcp_config.json` с `"disabled": true` — уберите ключ после установки бинаря.
 
-Всё мержится неразрушающе: ваши хуки, серверы и настройки не трогаются, а `uninstall` убирает только записи, идентичные тем, что кит записал.
+### OpenCode
+```jsonc
+// opencode.json
+{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }
+```
+Автоматически ставится из npm на старте. Плагин переписывает in-process (`tool.execute.before`) и регистрирует Headroom MCP **только при наличии бинаря** (проверка на старте через `config`-хук).
+
+### Cursor
+Плагин (`plugins/cursor/`: always-applied правило + скилл) готов к маркетплейсу, но публично пока не листится. Варианты сейчас: добавить этот репо как **team-маркетплейс** или скопировать `plugins/cursor/rules/token-hygiene.mdc` в `.cursor/rules/` проекта. Хуки Cursor не переписывают команды, поэтому механизм — правило (агент сам ставит префикс `rtk`).
+
+### Windsurf / Devin Desktop (вручную)
+Формата плагинов нет. Ручная настройка:
+1. Rules: дописать `shared/rules/token-hygiene.md` в `~/.codeium/windsurf/memories/global_rules.md` (или `.devin/rules/` в проекте).
+2. MCP (опционально, нужен бинарь): в `~/.codeium/windsurf/mcp_config.json`:
+   `{"mcpServers": {"headroom": {"command": "headroom", "args": ["mcp", "serve"]}}}`
 
 ## 4. Повседневность: перезапись и обходы
 
-Чаще всего вы ничего не замечаете — в этом и смысл. Команды вроде `git status`, `npm test`, `cargo build`, `docker ps`, `kubectl get pods` тихо становятся `rtk git status`, `rtk npm test`, … Полный список префиксов живёт в одном файле: `~/.scrooge-kit/scripts/lib/policy.mjs`.
+Команды вроде `git status`, `npm test`, `cargo build`, `docker ps` тихо становятся `rtk …`. Список префиксов живёт в одном файле: `shared/scripts/lib/policy.mjs` (внутри каждого плагина — `scripts/lib/policy.mjs`).
 
 Хук **отказывается переписывать**, когда это может навредить:
 
-- бинарника `rtk` нет на PATH (перезапись уронила бы команду)
+- `rtk` нет на PATH (перезапись уронила бы команду)
 - команда составная или с редиректами: `| ; & > < $ \`` или многострочная
 - команда уже начинается с `rtk`
 - активен обход
@@ -103,55 +105,32 @@ npx github:sipki-tech/scrooge-kit status   # обнаруженные агент
 **Обходы** (их же уважает скилл `scrooge-hygiene`):
 
 ```bash
-SCROOGE_RAW=1 npm test     # одна команда с сырым выводом (KIT_RAW=1 тоже работает)
+SCROOGE_RAW=1 npm test     # одна команда сырьём (KIT_RAW=1 тоже работает)
 SCROOGE_RTK=off            # переменная окружения: отключить перезапись на сессию
 ```
 
-Обходите, когда важен точный вывод: разбор конкретной ошибки, бисекция флаки-теста, отчёт, который просили показать дословно.
+## 5. Headroom
 
-## 5. Headroom: сжатие всего, что не терминал
+Когда агенту нужен огромный лог или файл, скилл велит вызвать `headroom_compress` вместо вставки блоба, а `headroom_retrieve` — вернуть оригинал. Важно: команда сервера — `headroom mcp serve` (в Headroom ≥0.28 голый `headroom mcp` — группа команд, а не сервер).
 
-Когда агенту нужен огромный лог или файл, скилл `scrooge-hygiene` велит вызвать `headroom_compress` вместо вставки блоба, а `headroom_retrieve` — достать оригинал, если понадобились детали. `headroom_stats` показывает, что даёт сжатие.
+## 6. Мониторинг и замер
 
-Заметки по подключению:
+- Расход по агентам: `npx ccusage` (читает локальные логи Claude Code, Codex, Gemini CLI, OpenCode и других). Statusline для Claude Code: `npx ccusage statusline` в `statusLine` вашего `settings.json`, если хочется всегда видимой цифры.
+- Протокол замера: [benchmark.md](benchmark.md) — те же три задачи с `SCROOGE_RTK=off` и с включённым китом; приёмка при ≥50% экономии на выводе терминала и **нуле** пропущенных падений тестов. `rtk gain` / `headroom_stats` дают цифры по инструментам.
 
-- Команда MCP-сервера — `headroom mcp serve` (в Headroom ≥0.28 голый `headroom mcp` — группа команд, а не сервер).
-- Где хост это поддерживает, запись идёт с `"disabled": true`, пока бинарника нет — отсутствующий бинарь не может сломать сессию. После установки Headroom перезапустите `npx github:sipki-tech/scrooge-kit install`, чтобы записи включились.
-- У Headroom есть и режим HTTP-прокси (`headroom proxy`), сжимающий весь трафик через `ANTHROPIC_BASE_URL`/`OPENAI_BASE_URL`. Кит его не подключает — пробуйте вручную (см. [headroom.md](headroom.md)).
-
-## 6. Заметки по агентам, с которыми вы столкнётесь
-
-- **Claude Code** — эталонная интеграция: прозрачная перезапись через `hookSpecificOutput.updatedInput`. `--statusline` добавляет ccusage-statusline, только если своего нет; uninstall убирает его, только если он ровно наш.
-- **Antigravity** — хуки умеют запрещать, но не (проверяемо) менять args, поэтому вместо перезаписи хук отвечает deny с точной командой: агент тут же повторяет с `rtk …`. Один лишний round-trip, та же экономия.
-- **Cursor** — хуки только gate/annotate. Кит ставит совещательную подсказку и MCP, а при установке печатает однострочный User Rule — добавьте его вручную, именно он заставит агента самому префиксовать команды.
-- **Windsurf** — командных хуков нет вовсе: только rules + MCP.
-- **Gemini CLI / Codex / Grok** — перезапись зеркалит wire-формат Claude; если билд его игнорирует, просто выполняется исходная команда (fail-open). Статус по каждому: [agents.md](agents.md).
-
-## 7. Мониторинг
-
-```bash
-npx github:sipki-tech/scrooge-kit status
-```
-
-Печатает обнаруженных агентов, наличие rtk/headroom и отчёт ccusage о расходе (Claude Code, Codex, Gemini CLI, OpenCode и другие — из локальных логов). Для всегда видимой цифры в Claude Code — установка с `--statusline`.
-
-## 8. Замер экономии
-
-По [benchmark.md](benchmark.md): те же три задачи (фича / дебаг / рефакторинг) дважды — с выключенной оптимизацией (`SCROOGE_RTK=off`, headroom выключен) и с включённой. Приёмка: ≥50% меньше токенов на выводе терминала, **ноль** пропущенных из-за сжатия падающих тестов. `rtk gain` и `headroom_stats` дают цифры по инструментам.
-
-## 9. Решение проблем
+## 7. Решение проблем
 
 | Симптом | Причина / решение |
 | --- | --- |
-| Команды не переписываются | Сессия агента стартовала до установки — перезапустите агента. Затем `npx github:sipki-tech/scrooge-kit verify`. |
-| `rtk: command not found` после перезаписи | Не должно случаться (хук сначала проверяет PATH); если PATH агента отличается от вашего шелла — поставьте rtk туда, где агент его видит, или `SCROOGE_RTK=off`. |
-| headroom MCP «Failed to connect» | Запись должна быть `headroom mcp serve`, а не `headroom mcp`. Перезапустите install — старые записи вычищаются и добавляются правильно. |
-| Кажется, что хук ломает сессию | Он не может (fail-open, всегда exit 0) — но если подозреваете, `SCROOGE_RTK=off` нейтрализует перезапись без удаления. |
-| Хочу убрать всё | `npx github:sipki-tech/scrooge-kit uninstall` — убирает хуки, скиллы, MCP-записи и `~/.scrooge-kit`; всё, что вы редактировали, остаётся. |
+| Команды не переписываются | rtk не установлен (`which rtk`), или сессия стартовала до плагина — перезапустите агента. |
+| headroom MCP «Failed to connect» | Нет бинаря (удалите `scrooge-headroom` до его установки) или запись не `headroom mcp serve`. |
+| Нужен сырой вывод один раз | `SCROOGE_RAW=1 <команда>`. На сессию: `SCROOGE_RTK=off`. |
+| Подозрение на хук | Он fail-open (всегда exit 0); `SCROOGE_RTK=off` нейтрализует без удаления. |
+| Убрать всё | Удаление через менеджер плагинов каждого агента (см. §3) — больше ничего не трогалось. |
 
-## 10. Модель безопасности
+## 8. Модель безопасности
 
-- **Закон fail-open**: каждый хук обёрнут в catch-all и выходит с 0. Баг в ките стоит вам экономии, но никогда — сессии.
+- **Закон fail-open**: каждый хук обёрнут в catch-all и выходит с 0.
 - **Никаких слепых перезаписей**: четыре условия отказа из §4 проверяются на каждом вызове.
-- **Неразрушающая установка**: JSON-merge по ключу `scrooge-kit` в командах; маркер-блоки в чужих файлах; MCP-prune удаляет только точные совпадения с установленным.
-- **Журнал для всего**: `--dry-run` показывает тот же журнал, что исполняет реальный запуск — что видите в превью, то и произойдёт.
+- **Нативный жизненный цикл**: плагины не редактируют пользовательские конфиги; установка/обновление/удаление — менеджер плагинов хоста.
+- **Один источник правды**: `shared/` разливается по плагинам скриптом `scripts/sync.mjs`; тест падает при любом дрейфе копий.

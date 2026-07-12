@@ -16,7 +16,7 @@
 </table>
 
 <p align="center">
-  <img alt="cross-agent" src="https://img.shields.io/badge/agents-8%20supported-5B8DEF?style=for-the-badge&labelColor=111827" />
+  <img alt="native plugins" src="https://img.shields.io/badge/native%20plugins-7%20agents-5B8DEF?style=for-the-badge&labelColor=111827" />
   <img alt="token savings" src="https://img.shields.io/badge/terminal%20tokens-−60–90%25-F59E0B?style=for-the-badge&labelColor=111827" />
   <img alt="zero deps" src="https://img.shields.io/badge/dependencies-0-22C55E?style=for-the-badge&labelColor=111827" />
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-64748B?style=for-the-badge&labelColor=111827" />
@@ -29,86 +29,83 @@
 
 > Скрудж Макдак ныряет в бассейн сэкономленных токенов.
 
-**Scrooge Kit** — кросс-агентский кит экономии токенов. Одна установка подключает проверенные инструменты токен-экономии ко всем кодинг-агентам на машине — одна дисциплина, одни обходы, одна политика везде:
+**Scrooge Kit** — набор **нативных плагинов** (по одному на агента, все в этом монорепо), которые режут расход токенов проверенными инструментами. Никакого своего инсталлера и патчинга конфигов: каждый агент ставит плагин своим штатным менеджером плагинов.
 
 ```
-вывод терминала      ──► [rtk: rewrite-хук]        ──► контекст агента  (−60–90% токенов)
-блобы / логи / файлы ──► [Headroom: MCP-сжатие]    ──► LLM API          (−60–95% токенов)
-локальные логи агентов ─► [ccusage: отчёты]        ──► `scrooge-kit status`
+вывод терминала      ──► [rtk: PreToolUse rewrite-хук] ──► контекст агента  (−60–90% токенов)
+блобы / логи / файлы ──► [Headroom: MCP-сжатие]        ──► LLM API          (−60–95% токенов)
 ```
 
-- **[rtk](https://github.com/rtk-ai/rtk)** — сжимает вывод терминальных команд до попадания в контекст. Scrooge Kit ставит PreToolUse-хук, прозрачно переписывающий `git status` → `rtk git status`; агенту не нужно помнить про префикс.
-- **[Headroom](https://github.com/headroomlabs-ai/headroom)** — обратимое сжатие больших блобов через MCP-инструменты (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
-- **[ccusage](https://ccusage.com)** — отчёты о расходе токенов по агентам.
+- **[rtk](https://github.com/rtk-ai/rtk)** — хук прозрачно переписывает `git status` → `rtk git status`; вывод попадает в контекст сжатым, падения на месте.
+- **[Headroom](https://github.com/headroomlabs-ai/headroom)** — обратимое сжатие блобов через MCP-инструменты (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
+- **Скилл scrooge-hygiene + rules** — выборочное чтение, никаких сырых логов, этикет обходов.
+
+Предусловие для экономии: `brew install rtk` (без бинаря хуки — тихий no-op) и опционально `pip install "headroom-ai[all]"`.
+
+## Установка (нативно, по агентам)
+
+| Агент | Установка |
+|---|---|
+| **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` (+ `scrooge-headroom@scrooge-kit`, если установлен бинарь headroom) |
+| **Codex CLI** | `codex plugin marketplace add https://github.com/sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
+| **Grok Build** | `grok plugin marketplace add sipki-tech/scrooge-kit` → установка из `/plugin` (читает Claude-маркетплейс) |
+| **Gemini CLI** | `gemini extensions install https://github.com/sipki-tech/scrooge-kit` (тянет Release-архив) |
+| **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` |
+| **OpenCode** | добавить `"plugin": ["@sipki-tech/scrooge-kit-opencode"]` в `opencode.json` |
+| **Cursor** | плагин готов в `plugins/cursor/` — добавьте репо как team-маркетплейс или скопируйте `rules/token-hygiene.mdc` в проект |
+| **Windsurf / Devin** | формата плагинов нет — ручная настройка в [docs/GUIDE.ru.md §6](docs/GUIDE.ru.md) |
+
+Удаление тем же путём: `/plugin uninstall`, `codex plugin remove`, `gemini extensions uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, убрать запись из конфига (OpenCode).
 
 ## Зачем
 
 | Боль | Ответ Scrooge Kit |
 | --- | --- |
-| Квота сгорает на простынях `npm test` | rewrite-хук rtk: вывод входит в контекст сжатым на 60–90% |
-| Каждому агенту — своя настройка экономии | Одна политика, 8 адаптеров: поставил раз — получили все |
+| Квота сгорает на простынях `npm test` | PreToolUse-хук: вывод входит в контекст сжатым на 60–90% |
+| Каждому агенту — своя настройка экономии | Один репо, нативный плагин на агента, одна общая политика |
 | Лог на 5 МБ, вставленный в контекст | Скилл `scrooge-hygiene` + Headroom MCP: сжать, оригинал достать по требованию |
-| Непонятно, куда ушли токены | `scrooge-kit status` — расход по агентам через ccusage |
-| Страх, что тулинг сломает сессию | Fail-open хуки, неразрушающий merge конфигов, полный `--dry-run` |
-
-## Поддерживаемые агенты
-
-| Агент | Механизм | Перезапись команд |
-|---|---|---|
-| Claude Code | PreToolUse-хук + скилл + MCP + опциональный statusline | ✅ прозрачная |
-| Gemini CLI | extension (хуки + GEMINI.md + MCP) | ✅ прозрачная |
-| Antigravity | plugin (хуки + скилл + rules + MCP) | ⚠️ deny-подсказка |
-| Codex CLI | маркер-блок в config.toml + AGENTS.md + скилл | ✅ прозрачная |
-| OpenCode | JS-плагин (`tool.execute.before`) + MCP | ✅ in-process |
-| Grok CLI | хуки в settings.json + MCP | ✅ best-effort |
-| Cursor | нудж в beforeShellExecution + MCP + User Rule | ⚠️ только подсказка |
-| Windsurf | глобальные rules + MCP | ⚠️ только rules |
-
-Детали и оговорки по каждому агенту: [docs/agents.md](docs/agents.md).
-
-## Установка
-
-Прямо с GitHub (в npm не публикуется; добавьте `#main`, чтобы обойти кэш npx):
-
-```bash
-npx github:sipki-tech/scrooge-kit install            # все обнаруженные агенты
-npx github:sipki-tech/scrooge-kit install --dry-run  # сначала посмотреть план действий
-npx github:sipki-tech/scrooge-kit install --agent claude-code,codex
-npx github:sipki-tech/scrooge-kit install --with-rtk --with-headroom  # заодно поставить бинарники
-npx github:sipki-tech/scrooge-kit install --statusline  # (claude-code) ccusage-statusline, если не задан
-
-npx github:sipki-tech/scrooge-kit verify             # проверки здоровья по агентам
-npx github:sipki-tech/scrooge-kit status             # обнаруженные агенты + расход через ccusage
-npx github:sipki-tech/scrooge-kit uninstall          # убирает ровно то, что добавили
-```
-
-Или из клона: `git clone https://github.com/sipki-tech/scrooge-kit && cd scrooge-kit && node bin/cli.mjs install`.
-
-Требуется Node 18+. После установки перезапустите агентов — хуки загружаются на старте сессии.
+| Страх, что тулинг сломает сессию | Fail-open хуки (всегда exit 0), нет перезаписи без бинаря rtk, MCP отдельным плагином/выключен там, где отсутствие бинаря могло бы сломать |
 
 ## Гарантии
 
-- **Fail-open**: сломанный хук отвечает no-op и exit 0 — сессию не ломает никогда.
+- **Fail-open**: каждый хук ловит всё и выходит с 0 — баг стоит экономии, но не сессии.
 - **Не переписывает вслепую**: нет перезаписи, если `rtk` не установлен, команда составная (`| ; && > $`), уже с префиксом или под обходом.
-- **Обход**: префикс `SCROOGE_RAW=1` — сырой вывод одной команды; `SCROOGE_RTK=off` — отключить перезапись на сессию.
-- **Неразрушающе**: конфиги мержатся, а не перезаписываются; uninstall убирает только записи, идентичные установленным. Дописывания в чужие файлы (config.toml, AGENTS.md, global_rules.md) живут между маркерами `# >>> scrooge-kit >>>`.
-- **Dry-run для всего**: каждая мутация идёт через журнал; `--dry-run` печатает точный план.
+- **Обход**: `SCROOGE_RAW=1 <команда>` — одна команда сырьём; `SCROOGE_RTK=off` — на сессию.
+- **Нативный жизненный цикл**: установка, обновление и удаление — через штатный менеджер плагинов агента; Scrooge Kit никогда не редактирует ваши конфиги.
+
+## Структура репо
+
+```
+.claude-plugin/marketplace.json   # маркетплейс: scrooge-kit + scrooge-headroom (его читают и Codex, и Grok)
+plugins/
+  claude-code/           # .claude-plugin + PreToolUse-хук + скилл
+  claude-code-headroom/  # MCP-only плагин (ставьте при наличии бинаря headroom)
+  codex/                 # .codex-plugin + PreToolUse-хук + скилл
+  gemini-cli/            # gemini-extension.json + BeforeTool-хук + GEMINI.md (релизится как tar.gz)
+  antigravity/           # plugin.json + hooks.json (deny-подсказка) + mcp_config.json (disabled) + rules
+  grok/                  # хуки + скилл, Claude-совместимая раскладка
+  cursor/                # .cursor-plugin + always-on правило + скилл
+  opencode/              # npm-пакет: in-process перезапись + условный headroom MCP
+shared/                  # единственный источник правды: policy, rewriter, io, скилл, rules
+scripts/sync.mjs         # разливает shared/ по плагинам (копии коммитятся; тест следит за синхронностью)
+```
+
+Политика перезаписи (список префиксов, обходы) живёт ровно в одном файле: `shared/scripts/lib/policy.mjs`.
 
 ## Замер
 
-[docs/benchmark.md](docs/benchmark.md) — протокол приёмки: ≥50% сокращения токенов на выводе терминала на референс-сессии, ноль пропущенных из-за сжатия падающих тестов.
+[docs/benchmark.md](docs/benchmark.md) — протокол приёмки: ≥50% сокращения токенов на выводе терминала, ноль пропущенных из-за сжатия падающих тестов. Для видимости расхода по агентам — [ccusage](https://ccusage.com): `npx ccusage`.
 
 ## Разработка
 
 ```bash
-npm test    # node --test, ноль зависимостей
+npm test        # node --test, ноль зависимостей: политика, диалекты хуков, манифесты, sync-проверка
+npm run sync    # переразлить shared/ после правок
 ```
-
-Структура: `core/` — машинерия инсталлера (журнал/dry-run, детект, MCP-merge, политика); `adapters/` — по тонкому модулю на агента; `payload/` — то, что ложится в `~/.scrooge-kit` (хук-скрипты, скилл, rules); `docs/` — матрица агентов, заметки по Headroom, протокол замера.
 
 ## Благодарности
 
-- [antigravity-kit](https://github.com/sipki-tech/antigravity-kit) — Scrooge Kit вырос из его Antigravity-only токен-стека; киты компонуются.
+- [antigravity-kit](https://github.com/sipki-tech/antigravity-kit) — Scrooge Kit вырос из его Antigravity-only токен-стека; они компонуются.
 - [rtk](https://github.com/rtk-ai/rtk), [Headroom](https://github.com/headroomlabs-ai/headroom), [ccusage](https://ccusage.com) — инструменты, которые и делают экономию.
 
 ## Лицензия

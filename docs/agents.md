@@ -1,42 +1,39 @@
 # Per-agent integration notes
 
-Verification status as of 2026-07: **[verified]** — wire format documented by the host and exercised; **[best-effort]** — mirrors a documented pattern, fail-open if the host ignores it.
+Confidence as of 2026-07: **[verified]** — official docs and/or exercised live; **[best-effort]** — mirrors a documented pattern, fail-open if the host ignores it; **[secondary]** — based on secondary sources, verify against the CLI on first use.
 
 ## claude-code [verified]
-- Hook: `~/.claude/settings.json` → `hooks.PreToolUse` matcher `Bash`, rewrites via `hookSpecificOutput.updatedInput`.
-- Skill: `~/.claude/skills/scrooge-hygiene/`.
-- MCP: registered through `claude mcp add --scope user headroom -- headroom mcp serve` (only when the headroom binary exists; editing `~/.claude.json` directly is avoided on purpose — it holds live session state).
-- Statusline: `--statusline` sets a ccusage statusline **only if none is configured**; uninstall removes it only if it is exactly ours.
-
-## gemini-cli [best-effort]
-- Everything ships as one extension: `~/.gemini/extensions/scrooge-kit/` (manifest + `GEMINI.md` rules + `hooks/hooks.json` + skill copy).
-- Hook wire format mirrors Claude's `hookSpecificOutput`; Gemini docs describe parameter rewriting for `run_shell_command` — if a build ignores it, the original command just runs.
-
-## antigravity [verified via antigravity-kit traps]
-- Plugin at `~/.gemini/config/plugins/scrooge-kit/` (+ mirror in `~/.gemini/antigravity-cli/plugins/` when present).
-- Carries the loader traps: `installed_version.json`, object `author`, `hooks.json` at plugin root with the named top-level key.
-- Rewriter runs in **deny-nudge** dialect (arg mutation unverified on this host): the deny reason contains the exact `rtk`-prefixed command to run instead.
-- MCP: headroom merged into `~/.gemini/config/mcp_config.json` (disabled unless the binary exists).
+- Native plugin `plugins/claude-code/` + marketplace at repo root. PreToolUse hook (matcher `Bash`) rewrites via `hookSpecificOutput.updatedInput`; script referenced through `${CLAUDE_PLUGIN_ROOT}`.
+- Headroom is the separate `scrooge-headroom` plugin: Claude Code plugin MCP servers cannot ship disabled, so it must only be installed when the binary exists.
 
 ## codex [best-effort]
-- `~/.codex/config.toml`: appended marker block with `[[hooks.PreToolUse]]` (+ `[mcp_servers.headroom]` when the binary exists). We never parse user TOML — only append/remove our `# >>> scrooge-kit >>>` block.
-- Rules appended to `~/.codex/AGENTS.md` in the same marker style; skill copied to `~/.codex/skills/`.
-- Hooks are stable since Codex v0.124; not available on Windows.
+- `plugins/codex/` with `.codex-plugin/plugin.json`; native PreToolUse hooks since ~v0.144, `PLUGIN_ROOT` env with a `CLAUDE_PLUGIN_ROOT` alias (we use the alias for one shared hooks format). Matcher covers `shell|local_shell|exec_command|Bash`.
+- Codex also reads legacy `.claude-plugin/marketplace.json`, so `codex plugin marketplace add <repo-url>` + `codex plugin add scrooge-kit@scrooge-kit` may resolve the claude-code plugin instead — functionally equivalent.
+
+## gemini-cli [best-effort]
+- `plugins/gemini-cli/` is a Gemini extension (`gemini-extension.json`, `contextFileName: GEMINI.md`). Hook event is **`BeforeTool`** with matcher `run_shell_command`; script path via `${extensionPath}`.
+- Remote install needs the release archive (`scrooge-kit.gemini-extension.tar.gz`, built by `scripts/pack-gemini.mjs`, attached by the release workflow) because `gemini extensions install` has no subdirectory flag. Local dev: `gemini extensions link ./plugins/gemini-cli`.
+- The rewriter answers in the Claude-style `hookSpecificOutput.updatedInput` dialect; if a build doesn't support input rewriting, the original command runs (fail-open).
+
+## antigravity [verified via antigravity-kit traps; agy CLI syntax [secondary]]
+- `plugins/antigravity/`: `plugin.json` (object `author`), root-level `hooks.json` with the named top-level block, `mcp_config.json` with headroom `"disabled": true` (agy supports the flag), rules/, skills/, scripts/.
+- Install: `agy plugin install ./scrooge-kit/plugins/antigravity` (local path after clone; remote subdir install unconfirmed). `installed_version.json` is written by the plugin manager — never committed.
+- Rewriter runs the **deny-nudge** dialect: arg mutation is unverified on this host, so the deny reason carries the exact `rtk`-prefixed command.
+
+## grok [secondary]
+- `plugins/grok/` is a manifest-less Claude-compatible plugin dir (hooks/hooks.json + skills + scripts), path var `${GROK_PLUGIN_ROOT}`.
+- Grok Build reads Claude marketplaces (`grok plugin marketplace add sipki-tech/scrooge-kit`); manual fallback: copy to `~/.grok/plugins/scrooge-kit/`. Verify exact CLI against `grok plugin --help`.
+
+## cursor [best-effort]
+- `plugins/cursor/`: `.cursor-plugin/plugin.json` + always-applied rule `rules/token-hygiene.mdc` + skill. No hook: Cursor hooks gate/observe but don't rewrite, so the rule (agent prefixes `rtk` itself) is the mechanism.
+- Public marketplace listing requires review — until then: team marketplace from this repo, or copy the .mdc into a project's `.cursor/rules/`.
 
 ## opencode [verified pattern]
-- Generated JS plugin at `~/.config/opencode/plugin/scrooge-kit.js` using `tool.execute.before` — mutates the bash args in-process, no wire-format guessing. Imports the shared policy from `~/.scrooge-kit`.
-- MCP: `headroom` entry in `~/.config/opencode/opencode.json` (only when the binary exists — opencode has no disabled flag in the shape we write).
+- `plugins/opencode/` is the npm package `@sipki-tech/scrooge-kit-opencode`: `tool.execute.before` mutates bash args in-process; the `config` hook registers headroom MCP only when the binary is present. Publish with `npm publish --access public` from that directory.
 
-## grok [best-effort]
-- `~/.grok/settings.json`: Claude-style `hooks.PreToolUse` + `mcpServers.headroom`. A build that ignores `hookSpecificOutput` runs the original command.
+## windsurf / devin [manual only]
+- No plugin packaging exists; GUIDE §3 documents the manual rules + MCP setup. Target both `.windsurf/`/`~/.codeium/windsurf/` and `.devin/` path families.
 
-## cursor [nudge only]
-- Hooks can gate/annotate but not rewrite: `~/.cursor/hooks.json` `beforeShellExecution` returns `permission: allow` with an `agent_message` suggesting the `rtk`-prefixed command.
-- MCP: `~/.cursor/mcp.json`. Rules are project-scoped in Cursor — install prints the User Rule one-liner to add manually.
+## Shared source
 
-## windsurf [rules only]
-- Cascade hooks only gate (exit code), so no hook is installed: rules appended to `~/.codeium/windsurf/memories/global_rules.md` (marker block) + MCP in `~/.codeium/windsurf/mcp_config.json`.
-
-## Shared payload
-
-All hooks reference `~/.scrooge-kit/` (single copy of scripts/skills/rules). `scrooge-kit uninstall` removes it last. The rewrite policy (`prefix list, bypasses`) lives in one file: `~/.scrooge-kit/scripts/lib/policy.mjs`.
+`shared/` is the single source of truth (policy, rewriter, io, skill, rules); `scripts/sync.mjs` distributes it into every plugin and `test/plugins.test.mjs` fails if any committed copy drifts. Hook wire dialects live in `shared/scripts/rtk-rewriter.mjs` (argv[2]: `claude-code`/`codex`/`gemini-cli`/`grok` → updatedInput; `antigravity` → deny-nudge; `cursor` → allow+agent_message, currently unused).
