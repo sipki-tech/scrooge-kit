@@ -18,7 +18,7 @@ test("claude marketplace lists plugins whose sources exist", () => {
   const mp = json(".claude-plugin/marketplace.json");
   assert.equal(mp.name, "scrooge-kit");
   assert.equal(typeof mp.owner, "object");
-  assert.ok(mp.plugins.length >= 2);
+  assert.ok(mp.plugins.length >= 1);
   for (const p of mp.plugins) {
     assert.match(p.name, /^[a-z0-9-]+$/, `${p.name}: kebab-case`);
     assert.ok(
@@ -42,18 +42,23 @@ test("claude-code plugin: manifest, hook, script, skill", () => {
   assert.ok(existsSync(join(ROOT, "plugins/claude-code/skills/scrooge-hygiene/SKILL.md")));
 });
 
-test("headroom plugin ships only the MCP server", () => {
-  const manifest = json("plugins/claude-code-headroom/.claude-plugin/plugin.json");
-  assert.equal(manifest.name, "scrooge-headroom");
-  const mcp = json("plugins/claude-code-headroom/.mcp.json");
-  assert.deepEqual(mcp.mcpServers.headroom.args, ["mcp", "serve"]);
-  assert.ok(!existsSync(join(ROOT, "plugins/claude-code-headroom/hooks")), "no hooks in the MCP-only plugin");
+// MCP (Headroom + Serena) is bundled into the main plugin for hosts that
+// auto-discover an .mcp.json. Both servers ship enabled — a missing binary is
+// a documented, visible connection error, not a shipped-disabled workaround.
+test("claude-code and grok bundle the Headroom + Serena MCP servers", () => {
+  for (const p of ["plugins/claude-code/.mcp.json", "plugins/grok/.mcp.json"]) {
+    const mcp = json(p).mcpServers;
+    assert.deepEqual(mcp.headroom.args, ["mcp", "serve"], `${p}: headroom`);
+    assert.equal(mcp.serena.command, "serena", `${p}: serena`);
+    assert.deepEqual(mcp.serena.args, ["start-mcp-server", "--context", "ide-assistant"], `${p}: serena args`);
+    assert.ok(mcp.headroom.disabled === undefined, `${p}: headroom must ship enabled`);
+    assert.ok(mcp.serena.disabled === undefined, `${p}: serena must ship enabled`);
+  }
 });
 
 test("every hook-bearing plugin references an existing script with the right dialect", () => {
   const cases = [
     ["plugins/codex/hooks/hooks.json", (h) => h.hooks.PreToolUse[0].hooks[0].command, "codex"],
-    ["plugins/gemini-cli/hooks/hooks.json", (h) => h.hooks.BeforeTool[0].hooks[0].command, "gemini-cli"],
     ["plugins/grok/hooks/hooks.json", (h) => h.hooks.PreToolUse[0].hooks[0].command, "grok"],
     ["plugins/antigravity/hooks.json", (h) => h["scrooge-kit"].PreToolUse[0].hooks[0].command, "antigravity"],
   ];
@@ -65,22 +70,16 @@ test("every hook-bearing plugin references an existing script with the right dia
   }
 });
 
-test("antigravity plugin keeps its loader traps", () => {
+test("antigravity plugin keeps its loader traps and ships MCP enabled", () => {
   const manifest = json("plugins/antigravity/plugin.json");
   assert.equal(typeof manifest.author, "object", "author must be an object");
   assert.ok(json("plugins/antigravity/hooks.json")["scrooge-kit"], "named top-level hook block");
   const hookCmd = json("plugins/antigravity/hooks.json")["scrooge-kit"].PreToolUse[0].hooks[0].command;
   assert.ok(!hookCmd.includes("${PLUGIN_ROOT}"), "agy 1.1.1 expands ${PLUGIN_ROOT} to empty — use hooks.json-relative paths");
-  assert.equal(json("plugins/antigravity/mcp_config.json").mcpServers.headroom.disabled, true);
+  const mcp = json("plugins/antigravity/mcp_config.json").mcpServers;
+  assert.ok(mcp.headroom.disabled === undefined, "agy MCP auto-enables — no disabled flag");
+  assert.ok(mcp.serena.disabled === undefined, "agy MCP auto-enables — no disabled flag");
   assert.ok(!existsSync(join(ROOT, "plugins/antigravity/installed_version.json")), "never commit installed_version.json");
-});
-
-test("serena plugin is MCP-only with the ide-assistant context", () => {
-  assert.equal(json("plugins/claude-code-serena/.claude-plugin/plugin.json").name, "scrooge-serena");
-  const mcp = json("plugins/claude-code-serena/.mcp.json").mcpServers.serena;
-  assert.equal(mcp.command, "serena");
-  assert.deepEqual(mcp.args, ["start-mcp-server", "--context", "ide-assistant"]);
-  assert.ok(!existsSync(join(ROOT, "plugins/claude-code-serena/hooks")), "MCP-only: no hooks");
 });
 
 test("codex marketplace lists plugins whose sources exist", () => {
@@ -92,13 +91,6 @@ test("codex marketplace lists plugins whose sources exist", () => {
   }
   const codex = marketplace.plugins.find((p) => p.name === "scrooge-kit");
   assert.ok(existsSync(join(ROOT, codex.source.path, ".codex-plugin", "plugin.json")));
-});
-
-test("gemini extension manifest is complete", () => {
-  const manifest = json("plugins/gemini-cli/gemini-extension.json");
-  assert.equal(manifest.name, "scrooge-kit");
-  assert.equal(manifest.contextFileName, "GEMINI.md");
-  assert.ok(existsSync(join(ROOT, "plugins/gemini-cli/GEMINI.md")));
 });
 
 test("opencode plugin loads, rewrites, and injects headroom conditionally", async () => {
@@ -118,13 +110,4 @@ test("opencode plugin loads, rewrites, and injects headroom conditionally", asyn
     assert.deepEqual(config.mcp.headroom.command, ["headroom", "mcp", "serve"]);
   }
   delete process.env.SCROOGE_TEST_RTK;
-});
-
-test("gemini release archive packs with the manifest at archive root", () => {
-  const dist = join(ROOT, "dist-test");
-  execFileSync(process.execPath, [join(ROOT, "scripts", "pack-gemini.mjs"), "dist-test"], { stdio: "pipe" });
-  const listing = execFileSync("tar", ["-tzf", join(dist, "scrooge-kit.gemini-extension.tar.gz")]).toString();
-  assert.match(listing, /^\.\/gemini-extension\.json$/m);
-  assert.match(listing, /GEMINI\.md/);
-  execFileSync("rm", ["-rf", dist]);
 });

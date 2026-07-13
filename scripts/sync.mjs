@@ -10,15 +10,14 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-const SCRIPT_PLUGINS = ["claude-code", "codex", "gemini-cli", "antigravity", "grok"];
-const SKILL_PLUGINS = ["claude-code", "codex", "gemini-cli", "antigravity", "grok"];
+const SCRIPT_PLUGINS = ["claude-code", "codex", "antigravity", "grok"];
+const SKILL_PLUGINS = ["claude-code", "codex", "antigravity", "grok"];
 
 const rules = readFileSync(join(ROOT, "shared", "rules", "token-hygiene.md"), "utf8");
 
 // target path (relative to repo root) -> desired content source
 const FILE_TARGETS = {
   "plugins/antigravity/rules/token-hygiene.md": rules,
-  "plugins/gemini-cli/GEMINI.md": rules,
 };
 
 const DIR_TARGETS = [

@@ -13,8 +13,16 @@ import {
   toolInputOf,
   denyResponse,
   SILENT,
+  ALLOW,
 } from "./lib/io.mjs";
 import { rewriteCommand } from "./lib/policy.mjs";
+
+// Hosts whose PreToolUse contract cannot mutate the command and requires an
+// explicit decision (a bare {} is treated as deny). For these we deny-nudge on
+// a rewrite and must return an explicit allow on every no-op. Mutating hosts
+// (claude-code, codex) keep the silent updatedInput rewrite and a {} no-op.
+const DECISION_HOSTS = new Set(["antigravity", "grok"]);
+const allowFor = (dialect) => (DECISION_HOSTS.has(dialect) ? ALLOW : SILENT);
 
 let rtkProbe = null;
 export function rtkAvailable(env = process.env) {
@@ -37,31 +45,31 @@ export function rtkAvailable(env = process.env) {
 export function handle(input, dialect, env = process.env) {
   const cmd = commandLineOf(input);
   const rewritten = rtkAvailable(env) ? rewriteCommand(cmd, env) : null;
-  if (!rewritten) return SILENT;
+  // No-op must be an explicit allow on decision hosts — a bare {} reads as deny.
+  if (!rewritten) return allowFor(dialect);
 
-  switch (dialect) {
-    // Antigravity hooks can deny but not (verifiably) mutate args — nudge
-    // with the exact command to run instead.
-    case "antigravity":
-      return denyResponse(
-        `[scrooge-kit] Run this through rtk to compress the output: \`${rewritten}\`. To intentionally run raw, prefix with SCROOGE_RAW=1.`,
-      );
-    // Claude Code dialect; Gemini CLI, Codex and Grok follow the same
-    // hookSpecificOutput shape (documented for Claude, best-effort mirrors
-    // elsewhere — a host that ignores it simply runs the original command).
-    default:
-      return {
-        hookSpecificOutput: {
-          hookEventName: "PreToolUse",
-          permissionDecision: "allow",
-          permissionDecisionReason: "scrooge-kit: routed through rtk",
-          updatedInput: { ...toolInputOf(input), command: rewritten },
-        },
-      };
+  // Antigravity and Grok can deny but not mutate args — nudge with the exact
+  // command to run instead. (Their contract has no slot for a replacement.)
+  if (DECISION_HOSTS.has(dialect)) {
+    return denyResponse(
+      `[scrooge-kit] Run this through rtk to compress the output: \`${rewritten}\`. To intentionally run raw, prefix with SCROOGE_RAW=1.`,
+    );
   }
+  // Claude Code dialect; Codex follows the same hookSpecificOutput shape and
+  // silently rewrites the command via updatedInput.
+  return {
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "allow",
+      permissionDecisionReason: "scrooge-kit: routed through rtk",
+      updatedInput: { ...toolInputOf(input), command: rewritten },
+    },
+  };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const dialect = process.argv[2] ?? "claude-code";
-  runHook((input) => handle(input, dialect));
+  // Dialect-aware fallback: an internal error / empty stdin must still allow
+  // explicitly on decision hosts, never emit a bare {} that reads as deny.
+  runHook((input) => handle(input, dialect), allowFor(dialect));
 }

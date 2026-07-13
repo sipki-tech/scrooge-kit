@@ -45,42 +45,34 @@ uv tool install serena-agent         # optional: Serena LSP retrieval (`serena` 
 
 Every command below is exercised live against the real CLI (see the verification matrix in [agents.md](agents.md)); re-check on your machine anytime with `npm run smoke`.
 
+Every plugin bundles the Headroom + Serena MCP servers, **enabled**. If a binary isn't on PATH the host shows a one-line MCP connection error and everything else keeps working — install the binaries (step 2) to clear it.
+
 ### Claude Code
 ```
 /plugin marketplace add sipki-tech/scrooge-kit
 /plugin install scrooge-kit@scrooge-kit
-/plugin install scrooge-headroom@scrooge-kit    # only if `headroom` is on PATH
-/plugin install scrooge-serena@scrooge-kit      # only if `serena` is on PATH
 ```
-Non-interactive: `claude plugin install scrooge-kit@scrooge-kit --scope user`. The headroom MCP is a **separate plugin** because Claude Code plugins can't ship MCP servers disabled — installing it without the binary would show connection errors.
+Non-interactive: `claude plugin install scrooge-kit@scrooge-kit --scope user`. Headroom + Serena ship inside the plugin's `.mcp.json` — no separate install.
 
 ### Codex CLI (≥0.144)
 ```bash
 codex plugin marketplace add sipki-tech/scrooge-kit
 codex plugin add scrooge-kit@scrooge-kit
-codex plugin add scrooge-headroom@scrooge-kit   # only if `headroom` is on PATH
-codex plugin add scrooge-serena@scrooge-kit     # only if `serena` is on PATH
 ```
-Codex resolves the repo's native `.agents/plugins/marketplace.json` (dedicated `plugins/codex/` with `.codex-plugin` manifest); older snapshots fall back to the legacy `.claude-plugin/marketplace.json`. Uninstall: `codex plugin remove scrooge-kit@scrooge-kit`.
+Codex resolves the repo's native `.agents/plugins/marketplace.json` (dedicated `plugins/codex/` with `.codex-plugin` manifest); older snapshots fall back to the legacy `.claude-plugin/marketplace.json`. Uninstall: `codex plugin remove scrooge-kit@scrooge-kit`. (MCP isn't bundled for Codex yet — add the `headroom` / `serena` servers to Codex's own MCP config manually once the binaries work.)
 
 ### Grok Build
 ```bash
 grok plugin install sipki-tech/scrooge-kit#plugins/grok
 ```
-Installs the dedicated Grok plugin straight from the repo subdirectory. `grok plugin marketplace add sipki-tech/scrooge-kit` also works (Grok reads the Claude marketplace) but resolves the Claude Code build of the plugin — prefer the subdir install. Uninstall: `grok plugin uninstall scrooge-kit`.
-
-### Gemini CLI
-```bash
-gemini extensions install https://github.com/sipki-tech/scrooge-kit
-```
-Pulls the `scrooge-kit.gemini-extension.tar.gz` asset from the latest GitHub Release. Dev/local: `gemini extensions link ./plugins/gemini-cli`. The hook uses Gemini's `BeforeTool` event; hook-bearing extensions ask for consent at install.
+Installs the dedicated Grok plugin straight from the repo subdirectory. `grok plugin marketplace add sipki-tech/scrooge-kit` also works (Grok reads the Claude marketplace) but resolves the Claude Code build of the plugin — prefer the subdir install. The hook runs in **deny-nudge** mode (Grok hooks can only allow/deny, not rewrite the command): it blocks a raw dev command and the deny reason carries the exact `rtk …` to retry. Uninstall: `grok plugin uninstall scrooge-kit`.
 
 ### Antigravity (agy)
 ```bash
 git clone https://github.com/sipki-tech/scrooge-kit
 agy plugin install ./scrooge-kit/plugins/antigravity
 ```
-**Never** run `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-installs every directory under a repo's `plugins/`, i.e. all six agent payloads. There is no `agy plugin update`; to update, pull and re-install. The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom and Serena are pre-registered in `mcp_config.json` with `"disabled": true` — remove that key for each once the corresponding binary is installed (re-installing the plugin restores the flag).
+**Never** run `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-installs every directory under a repo's `plugins/`, i.e. all the agent payloads. There is no `agy plugin update`; to update, pull and re-install. The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom and Serena are pre-registered and **enabled** in `mcp_config.json`.
 
 ### OpenCode
 ```bash
@@ -112,7 +104,7 @@ When the agent needs a huge log or file, the skill tells it to call `headroom_co
 
 ## 6. Monitoring & measuring
 
-- Spend per agent: `npx ccusage` (reads local logs of Claude Code, Codex, Gemini CLI, OpenCode and more). Claude Code statusline: `npx ccusage statusline` in your `settings.json` `statusLine` if you want an always-visible number.
+- Spend per agent: `npx ccusage` (reads local logs of Claude Code, Codex, OpenCode and more). Claude Code statusline: `npx ccusage statusline` in your `settings.json` `statusLine` if you want an always-visible number.
 - Savings protocol: [benchmark.md](benchmark.md) — same three tasks with `SCROOGE_RTK=off` vs on; accept at ≥50% fewer terminal-output tokens and **zero** missed test failures. `rtk gain` / `headroom_stats` give per-tool numbers.
 
 ## 7. Troubleshooting
@@ -120,7 +112,7 @@ When the agent needs a huge log or file, the skill tells it to call `headroom_co
 | Symptom | Cause / fix |
 | --- | --- |
 | Commands aren't rewritten | rtk not installed (`which rtk`), or the session started before the plugin — restart the agent. |
-| headroom MCP "Failed to connect" | Binary missing (uninstall `scrooge-headroom` until it's installed) or the entry isn't `headroom mcp serve`. |
+| headroom / serena MCP "Failed to connect" | Binary missing — `pip install "headroom-ai[all]"` / `uv tool install serena-agent` (the servers ship enabled; the error is harmless until then). Or the entry isn't `headroom mcp serve`. |
 | Need raw output once | `SCROOGE_RAW=1 <cmd>`. Session-wide: `SCROOGE_RTK=off`. |
 | Suspect the hook | It's fail-open (exit 0 always); `SCROOGE_RTK=off` neutralizes it without uninstalling. |
 | Remove everything | Uninstall via each agent's plugin manager (see §3) — nothing else was touched. |

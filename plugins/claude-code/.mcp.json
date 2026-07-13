@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "headroom": {
+      "command": "headroom",
+      "args": ["mcp", "serve"]
+    },
     "serena": {
       "command": "serena",
       "args": ["start-mcp-server", "--context", "ide-assistant"]

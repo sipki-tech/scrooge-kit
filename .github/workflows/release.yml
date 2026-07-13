@@ -16,9 +16,7 @@ jobs:
         with:
           node-version: 22
       - run: npm test
-      - run: node scripts/pack-gemini.mjs
-      - name: Create GitHub Release with the Gemini extension archive
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/scrooge-kit.gemini-extension.tar.gz
           generate_release_notes: true

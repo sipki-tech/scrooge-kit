@@ -16,7 +16,7 @@
 </table>
 
 <p align="center">
-  <img alt="native plugins" src="https://img.shields.io/badge/native%20plugins-6%20agents-5B8DEF?style=for-the-badge&labelColor=111827" />
+  <img alt="native plugins" src="https://img.shields.io/badge/native%20plugins-5%20agents-5B8DEF?style=for-the-badge&labelColor=111827" />
   <img alt="token savings" src="https://img.shields.io/badge/terminal%20tokens-−60–90%25-F59E0B?style=for-the-badge&labelColor=111827" />
   <img alt="zero deps" src="https://img.shields.io/badge/dependencies-0-22C55E?style=for-the-badge&labelColor=111827" />
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-64748B?style=for-the-badge&labelColor=111827" />
@@ -36,7 +36,7 @@
 блобы / логи / файлы ──► [Headroom: MCP-сжатие]        ──► LLM API          (−60–95% токенов)
 ```
 
-- **[rtk](https://github.com/rtk-ai/rtk)** — хук прозрачно переписывает `git status` → `rtk git status`; вывод попадает в контекст сжатым, падения на месте.
+- **[rtk](https://github.com/rtk-ai/rtk)** — направляет `git status` → `rtk git status`, вывод попадает в контекст сжатым, падения на месте. Там, где хук хоста умеет мутировать команду (Claude Code, Codex, OpenCode) — переписывает тихо; там, где хост умеет только allow/deny (Antigravity, Grok) — блокирует сырую команду и подсказывает агенту перезапустить её через rtk.
 - **[Headroom](https://github.com/headroomlabs-ai/headroom)** — обратимое сжатие блобов через MCP-инструменты (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
 - **[Serena](https://github.com/oraios/serena)** — symbol-level чтение/правка кода через LSP (40+ языков): агент читает символы и ссылки вместо целых файлов.
 - **Скилл scrooge-hygiene + rules** — выборочное чтение, никаких сырых логов, этикет обходов.
@@ -47,16 +47,17 @@
 
 Каждая команда ниже прогнана против реального CLI — матрица проверок в [docs/agents.md](docs/agents.md), песочный перепрогон — `npm run smoke`.
 
+Каждый плагин несёт MCP-сервера Headroom + Serena — они идут **включёнными**. Если бинаря `headroom` / `serena` нет на PATH, хост покажет однострочную ошибку подключения MCP, а всё остальное продолжит работать; поставьте бинари (ниже), чтобы её убрать.
+
 | Агент | Установка |
 |---|---|
-| **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` (+ `scrooge-headroom@scrooge-kit` / `scrooge-serena@scrooge-kit`, если установлен соответствующий бинарь) |
-| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` (+ `scrooge-headroom` / `scrooge-serena` тем же путём) |
+| **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` |
+| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
 | **Grok Build** | `grok plugin install sipki-tech/scrooge-kit#plugins/grok` |
-| **Gemini CLI** | `gemini extensions install https://github.com/sipki-tech/scrooge-kit` (тянет Release-архив) |
 | **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` — никогда не давайте `agy plugin install` URL репозитория: agy bulk-установит каждую папку под `plugins/` |
 | **OpenCode** | `opencode plugin @sipki-tech/scrooge-kit-opencode` (или добавьте `"plugin": ["@sipki-tech/scrooge-kit-opencode"]` в `opencode.json` сами) |
 
-Удаление тем же путём: `/plugin uninstall`, `codex plugin remove scrooge-kit@scrooge-kit`, `grok plugin uninstall scrooge-kit`, `gemini extensions uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, убрать запись из конфига (OpenCode). Обновление — командой update соответствующего менеджера (у `agy` update нет — переустановка).
+Удаление тем же путём: `/plugin uninstall`, `codex plugin remove scrooge-kit@scrooge-kit`, `grok plugin uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, убрать запись из конфига (OpenCode). Обновление — командой update соответствующего менеджера (у `agy` update нет — переустановка).
 
 ## Зачем
 
@@ -65,7 +66,7 @@
 | Квота сгорает на простынях `npm test` | PreToolUse-хук: вывод входит в контекст сжатым на 60–90% |
 | Каждому агенту — своя настройка экономии | Один репо, нативный плагин на агента, одна общая политика |
 | Лог на 5 МБ, вставленный в контекст | Скилл `scrooge-hygiene` + Headroom MCP: сжать, оригинал достать по требованию |
-| Страх, что тулинг сломает сессию | Fail-open хуки (всегда exit 0), нет перезаписи без бинаря rtk, MCP отдельным плагином/выключен там, где отсутствие бинаря могло бы сломать |
+| Страх, что тулинг сломает сессию | Fail-open хуки (всегда exit 0), нет перезаписи без бинаря rtk; MCP идёт включённым — отсутствие бинаря это видимая ошибка подключения, а не сломанная сессия |
 
 ## Гарантии
 
@@ -77,17 +78,14 @@
 ## Структура репо
 
 ```
-.claude-plugin/marketplace.json   # Claude Code-маркетплейс: scrooge-kit + scrooge-headroom (его читает и Grok)
-.agents/plugins/marketplace.json  # Codex-нативный маркетплейс (те же два плагина, object-sources)
+.claude-plugin/marketplace.json   # Claude Code-маркетплейс: scrooge-kit (его читает и Grok)
+.agents/plugins/marketplace.json  # Codex-нативный маркетплейс (тот же плагин, object-source)
 plugins/
-  claude-code/           # .claude-plugin + PreToolUse-хук + скилл
-  claude-code-headroom/  # MCP-only плагин (ставьте при наличии бинаря headroom)
-  claude-code-serena/    # MCP-only плагин: Serena LSP-навигация (ставьте при наличии бинаря serena)
+  claude-code/           # .claude-plugin + PreToolUse-хук + скилл + .mcp.json (Headroom + Serena)
   codex/                 # .codex-plugin + PreToolUse-хук + скилл
-  gemini-cli/            # gemini-extension.json + BeforeTool-хук + GEMINI.md (релизится как tar.gz)
-  antigravity/           # plugin.json + hooks.json (deny-подсказка) + mcp_config.json (disabled) + rules
-  grok/                  # .claude-plugin манифест + хуки + скилл (Claude-совместимая раскладка)
-  opencode/              # npm-пакет: in-process перезапись + условный headroom MCP
+  antigravity/           # plugin.json + hooks.json (deny-подсказка) + mcp_config.json (Headroom + Serena) + rules
+  grok/                  # .claude-plugin манифест + хуки (deny-подсказка) + скилл + .mcp.json (Headroom + Serena)
+  opencode/              # npm-пакет: in-process перезапись + условный Headroom/Serena MCP
 shared/                  # единственный источник правды: policy, rewriter, io, скилл, rules
 scripts/sync.mjs         # разливает shared/ по плагинам (копии коммитятся; тест следит за синхронностью)
 ```

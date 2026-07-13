@@ -11,12 +11,12 @@ agent context / files   --> [Headroom: blob compression] --> LLM API
 
 ## Supported mode: MCP server
 
-How each plugin ships it (a missing binary must never break sessions):
+How each plugin ships it (as of v0.4, MCP is enabled by default — a missing binary is a visible connection error, not a broken session):
 
-- **Claude Code**: separate `scrooge-headroom` plugin — install it only when the binary exists.
-- **Antigravity**: pre-registered in the plugin's `mcp_config.json` with `"disabled": true`; remove the key after installing the binary.
-- **OpenCode**: the npm plugin registers the server at startup only when the binary is detected.
-- **Others**: add manually per GUIDE §3 once the binary works.
+- **Claude Code / Grok**: bundled in the plugin's own `.mcp.json`, auto-discovered and enabled on install.
+- **Antigravity**: pre-registered and enabled in the plugin's `mcp_config.json` (agy auto-loads it).
+- **OpenCode**: the npm plugin registers the server at startup only when the binary is detected (the one host that stays silent if the binary is missing).
+- **Codex**: not bundled yet — add manually per GUIDE §3 once the binary works.
 
 1. Install the CLI: `pip install "headroom-ai[all]"` (Python 3.10+; or `uv tool install` / `pipx install`).
 2. Restart the agent. Three tools become available:

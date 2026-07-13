@@ -33,11 +33,10 @@ const TIMEOUT = 120_000;
 // Real state a misbehaving CLI could touch. ~/.claude and ~/.gemini are
 // scoped to their plugin-relevant paths only — the rest is live session
 // state (oauth tokens, project history, agy databases) that churns on its
-// own and must never be blanket-restored.
+// own and must never be blanket-restored. (agy stores plugins under ~/.gemini/config.)
 const PROTECTED = [
   join(HOME, ".claude", "settings.json"),
   join(HOME, ".claude", "plugins"),
-  join(HOME, ".gemini", "extensions"),
   join(HOME, ".gemini", "config", "plugins"),
   join(HOME, ".gemini", "config", "import_manifest.json"),
   join(HOME, ".codex"),
@@ -162,44 +161,14 @@ function testClaude() {
   const steps = [
     run(["claude", "plugin", "marketplace", "add", ROOT], env),
     run(["claude", "plugin", "install", "scrooge-kit@scrooge-kit", "--scope", "user"], env),
-    run(["claude", "plugin", "install", "scrooge-headroom@scrooge-kit", "--scope", "user"], env),
-    run(["claude", "plugin", "install", "scrooge-serena@scrooge-kit", "--scope", "user"], env),
   ];
   const list = run(["claude", "plugin", "list"], env);
-  list.ok =
-    list.ok &&
-    list.out.includes("scrooge-kit") &&
-    list.out.includes("scrooge-headroom") &&
-    list.out.includes("scrooge-serena");
-  list.name = "claude plugin list → all three plugins present";
+  list.ok = list.ok && list.out.includes("scrooge-kit");
+  list.name = "claude plugin list → scrooge-kit present (bundles rtk hook + Headroom/Serena MCP)";
   steps.push(list);
   steps.push(run(["claude", "plugin", "uninstall", "scrooge-kit@scrooge-kit", "--scope", "user"], env));
-  steps.push(run(["claude", "plugin", "uninstall", "scrooge-headroom@scrooge-kit", "--scope", "user"], env));
-  steps.push(run(["claude", "plugin", "uninstall", "scrooge-serena@scrooge-kit", "--scope", "user"], env));
   rmSync(sb, { recursive: true, force: true });
   report("claude-code", steps.every((s) => s.ok) ? "PASS" : "FAIL", steps);
-}
-
-function testGemini() {
-  if (!which("gemini")) return report("gemini-cli", "SKIP", [], "binary not found");
-  const sb = sandbox("gemini");
-  const env = { ...process.env, HOME: sb };
-  // --consent covers the extension-risk prompt; the folder-trust prompt still
-  // reads stdin in a fresh HOME, so feed it a "y".
-  const install = run(
-    ["gemini", "extensions", "install", join(ROOT, "plugins", "gemini-cli"), "--consent"],
-    env,
-    "",
-    "y\n",
-  );
-  const steps = [install];
-  const list = run(["gemini", "extensions", "list"], env);
-  list.ok = list.ok && /scrooge-kit/.test(list.out);
-  list.name = "gemini extensions list → scrooge-kit present";
-  steps.push(list);
-  steps.push(run(["gemini", "extensions", "uninstall", "scrooge-kit"], env));
-  rmSync(sb, { recursive: true, force: true });
-  report("gemini-cli", steps.every((s) => s.ok) ? "PASS" : "FAIL", steps);
 }
 
 function testAgy() {
@@ -323,7 +292,6 @@ console.log(`state backup: ${backupDir}`);
 const before = backupAll(backupDir);
 
 testClaude();
-testGemini();
 testAgy();
 // agy's plugin manager may stamp installed_version.json into the payload —
 // never let it land in the repo tree (see the antigravity loader-traps test).

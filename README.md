@@ -16,7 +16,7 @@
 </table>
 
 <p align="center">
-  <img alt="native plugins" src="https://img.shields.io/badge/native%20plugins-6%20agents-5B8DEF?style=for-the-badge&labelColor=111827" />
+  <img alt="native plugins" src="https://img.shields.io/badge/native%20plugins-5%20agents-5B8DEF?style=for-the-badge&labelColor=111827" />
   <img alt="token savings" src="https://img.shields.io/badge/terminal%20tokens-−60–90%25-F59E0B?style=for-the-badge&labelColor=111827" />
   <img alt="zero deps" src="https://img.shields.io/badge/dependencies-0-22C55E?style=for-the-badge&labelColor=111827" />
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-64748B?style=for-the-badge&labelColor=111827" />
@@ -36,7 +36,7 @@ terminal command output ──► [rtk: PreToolUse rewrite hook] ──► agent
 big blobs / logs / files ──► [Headroom: MCP compress]      ──► LLM API        (−60–95% tokens)
 ```
 
-- **[rtk](https://github.com/rtk-ai/rtk)** — the hook transparently rewrites `git status` → `rtk git status`; output enters the context compressed, failures intact.
+- **[rtk](https://github.com/rtk-ai/rtk)** — routes `git status` → `rtk git status` so output enters the context compressed, failures intact. On hosts whose hooks can mutate a command (Claude Code, Codex, OpenCode) the rewrite is silent; on hosts that can only allow/deny (Antigravity, Grok) the hook denies the raw command and nudges the agent to re-run it through rtk.
 - **[Headroom](https://github.com/headroomlabs-ai/headroom)** — reversible blob compression via MCP tools (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
 - **[Serena](https://github.com/oraios/serena)** — symbol-level code retrieval/editing over LSP (40+ languages): the agent reads symbols and references instead of whole files.
 - **scrooge-hygiene skill + rules** — selective reads, no raw logs, bypass etiquette.
@@ -47,16 +47,17 @@ Prerequisite for the savings: `brew install rtk` (hooks are silent no-ops withou
 
 Every command below is exercised against the real CLI — see [docs/agents.md](docs/agents.md) for the verification matrix and `npm run smoke` for the sandboxed re-check.
 
+Every plugin bundles the Headroom + Serena MCP servers — they come **enabled**. If the `headroom` / `serena` binary isn't on PATH the host shows a one-line MCP connection error and everything else keeps working; install the binaries (below) to clear it.
+
 | Agent | Install |
 |---|---|
-| **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` (+ `scrooge-headroom@scrooge-kit` / `scrooge-serena@scrooge-kit` if the respective binary is installed) |
-| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` (+ `scrooge-headroom` / `scrooge-serena` the same way) |
+| **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` |
+| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
 | **Grok Build** | `grok plugin install sipki-tech/scrooge-kit#plugins/grok` |
-| **Gemini CLI** | `gemini extensions install https://github.com/sipki-tech/scrooge-kit` (pulls the release archive) |
 | **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` — never point `agy plugin install` at the repo URL: agy bulk-installs every directory under `plugins/` |
 | **OpenCode** | `opencode plugin @sipki-tech/scrooge-kit-opencode` (or add `"plugin": ["@sipki-tech/scrooge-kit-opencode"]` to `opencode.json` yourself) |
 
-Uninstall the same way: `/plugin uninstall`, `codex plugin remove scrooge-kit@scrooge-kit`, `grok plugin uninstall scrooge-kit`, `gemini extensions uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, remove the config entry (OpenCode). Update: re-run the marketplace/extension update command of the agent (`agy` has no update — re-install).
+Uninstall the same way: `/plugin uninstall`, `codex plugin remove scrooge-kit@scrooge-kit`, `grok plugin uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, remove the config entry (OpenCode). Update: re-run the marketplace/extension update command of the agent (`agy` has no update — re-install).
 
 ## Why
 
@@ -65,7 +66,7 @@ Uninstall the same way: `/plugin uninstall`, `codex plugin remove scrooge-kit@sc
 | Quota burns on `npm test` walls of text | PreToolUse hook: output enters the context compressed 60–90% |
 | Each agent needs its own token setup | One repo, native plugin per agent, one shared policy |
 | A 5 MB log pasted into the context | `scrooge-hygiene` skill + Headroom MCP: compress, retrieve originals on demand |
-| Fear of tooling breaking sessions | Fail-open hooks (exit 0 always), no rewrite without the rtk binary, MCP shipped separately/disabled where a missing binary could fail |
+| Fear of tooling breaking sessions | Fail-open hooks (exit 0 always), no rewrite without the rtk binary; MCP ships enabled — a missing binary is a visible connection error, never a broken session |
 
 ## Guarantees
 
@@ -77,17 +78,14 @@ Uninstall the same way: `/plugin uninstall`, `codex plugin remove scrooge-kit@sc
 ## Repo layout
 
 ```
-.claude-plugin/marketplace.json   # Claude Code marketplace: scrooge-kit + scrooge-headroom (Grok reads it too)
-.agents/plugins/marketplace.json  # Codex-native marketplace (same two plugins, object sources)
+.claude-plugin/marketplace.json   # Claude Code marketplace: scrooge-kit (Grok reads it too)
+.agents/plugins/marketplace.json  # Codex-native marketplace (same plugin, object source)
 plugins/
-  claude-code/           # .claude-plugin + PreToolUse hook + skill
-  claude-code-headroom/  # MCP-only plugin (install when headroom binary exists)
-  claude-code-serena/    # MCP-only plugin: Serena LSP retrieval (install when serena binary exists)
+  claude-code/           # .claude-plugin + PreToolUse hook + skill + .mcp.json (Headroom + Serena)
   codex/                 # .codex-plugin + PreToolUse hook + skill
-  gemini-cli/            # gemini-extension.json + BeforeTool hook + GEMINI.md (released as tar.gz)
-  antigravity/           # plugin.json + hooks.json (deny-nudge) + mcp_config.json (disabled) + rules
-  grok/                  # .claude-plugin manifest + hooks + skill (Claude-compatible layout)
-  opencode/              # npm package: in-process rewrite + conditional headroom MCP
+  antigravity/           # plugin.json + hooks.json (deny-nudge) + mcp_config.json (Headroom + Serena) + rules
+  grok/                  # .claude-plugin manifest + hooks (deny-nudge) + skill + .mcp.json (Headroom + Serena)
+  opencode/              # npm package: in-process rewrite + conditional Headroom/Serena MCP
 shared/                  # single source of truth: policy, rewriter, io, skill, rules
 scripts/sync.mjs         # distributes shared/ into plugins (copies are committed; test enforces sync)
 ```

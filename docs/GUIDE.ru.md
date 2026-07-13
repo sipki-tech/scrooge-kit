@@ -45,42 +45,34 @@ uv tool install serena-agent         # опционально: Serena LSP-нав
 
 Каждая команда ниже прогнана вживую против реального CLI (матрица проверок — в [agents.md](agents.md)); перепроверить на своей машине можно в любой момент: `npm run smoke`.
 
+Каждый плагин несёт MCP-сервера Headroom + Serena, **включёнными**. Если бинаря нет на PATH — хост покажет однострочную ошибку подключения MCP, а всё остальное продолжит работать; поставьте бинари (шаг 2), чтобы её убрать.
+
 ### Claude Code
 ```
 /plugin marketplace add sipki-tech/scrooge-kit
 /plugin install scrooge-kit@scrooge-kit
-/plugin install scrooge-headroom@scrooge-kit    # только если `headroom` на PATH
-/plugin install scrooge-serena@scrooge-kit      # только если `serena` на PATH
 ```
-Неинтерактивно: `claude plugin install scrooge-kit@scrooge-kit --scope user`. Headroom MCP — **отдельный плагин**, потому что MCP-серверы в плагинах Claude Code нельзя шипнуть выключенными: установка без бинаря показывала бы ошибки подключения.
+Неинтерактивно: `claude plugin install scrooge-kit@scrooge-kit --scope user`. Headroom + Serena идут внутри `.mcp.json` самого плагина — отдельная установка не нужна.
 
 ### Codex CLI (≥0.144)
 ```bash
 codex plugin marketplace add sipki-tech/scrooge-kit
 codex plugin add scrooge-kit@scrooge-kit
-codex plugin add scrooge-headroom@scrooge-kit   # только если `headroom` на PATH
-codex plugin add scrooge-serena@scrooge-kit     # только если `serena` на PATH
 ```
-Codex резолвит нативный `.agents/plugins/marketplace.json` репозитория (выделенный `plugins/codex/` с манифестом `.codex-plugin`); старые снапшоты падают назад на legacy `.claude-plugin/marketplace.json`. Удаление: `codex plugin remove scrooge-kit@scrooge-kit`.
+Codex резолвит нативный `.agents/plugins/marketplace.json` репозитория (выделенный `plugins/codex/` с манифестом `.codex-plugin`); старые снапшоты падают назад на legacy `.claude-plugin/marketplace.json`. Удаление: `codex plugin remove scrooge-kit@scrooge-kit`. (MCP для Codex пока не встроен — добавьте серверы `headroom` / `serena` в его собственный MCP-конфиг вручную, когда бинари заработают.)
 
 ### Grok Build
 ```bash
 grok plugin install sipki-tech/scrooge-kit#plugins/grok
 ```
-Ставит выделенный Grok-плагин прямо из поддиректории репозитория. `grok plugin marketplace add sipki-tech/scrooge-kit` тоже работает (Grok читает Claude-маркетплейс), но резолвит Claude Code-сборку плагина — предпочитайте subdir-установку. Удаление: `grok plugin uninstall scrooge-kit`.
-
-### Gemini CLI
-```bash
-gemini extensions install https://github.com/sipki-tech/scrooge-kit
-```
-Тянет ассет `scrooge-kit.gemini-extension.tar.gz` из последнего GitHub Release. Dev/локально: `gemini extensions link ./plugins/gemini-cli`. Хук использует событие Gemini `BeforeTool`; расширения с хуками спрашивают согласие при установке.
+Ставит выделенный Grok-плагин прямо из поддиректории репозитория. `grok plugin marketplace add sipki-tech/scrooge-kit` тоже работает (Grok читает Claude-маркетплейс), но резолвит Claude Code-сборку плагина — предпочитайте subdir-установку. Хук работает в режиме **deny-подсказки** (хуки Grok умеют только allow/deny, но не переписать команду): блокирует сырую dev-команду, а в причине отказа — готовая `rtk …` для повтора. Удаление: `grok plugin uninstall scrooge-kit`.
 
 ### Antigravity (agy)
 ```bash
 git clone https://github.com/sipki-tech/scrooge-kit
 agy plugin install ./scrooge-kit/plugins/antigravity
 ```
-**Никогда** не запускайте `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-установит каждую папку под `plugins/` репозитория, то есть все шесть агентских payload'ов. Команды `agy plugin update` нет; для обновления — pull и переустановка. Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom и Serena прописаны в `mcp_config.json` с `"disabled": true` — уберите ключ у каждого после установки соответствующего бинаря (переустановка плагина вернёт флаг).
+**Никогда** не запускайте `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-установит каждую папку под `plugins/` репозитория, то есть все агентские payload'ы. Команды `agy plugin update` нет; для обновления — pull и переустановка. Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom и Serena прописаны и **включены** в `mcp_config.json`.
 
 ### OpenCode
 ```bash
@@ -112,7 +104,7 @@ SCROOGE_RTK=off            # переменная окружения: отклю
 
 ## 6. Мониторинг и замер
 
-- Расход по агентам: `npx ccusage` (читает локальные логи Claude Code, Codex, Gemini CLI, OpenCode и других). Statusline для Claude Code: `npx ccusage statusline` в `statusLine` вашего `settings.json`, если хочется всегда видимой цифры.
+- Расход по агентам: `npx ccusage` (читает локальные логи Claude Code, Codex, OpenCode и других). Statusline для Claude Code: `npx ccusage statusline` в `statusLine` вашего `settings.json`, если хочется всегда видимой цифры.
 - Протокол замера: [benchmark.md](benchmark.md) — те же три задачи с `SCROOGE_RTK=off` и с включённым китом; приёмка при ≥50% экономии на выводе терминала и **нуле** пропущенных падений тестов. `rtk gain` / `headroom_stats` дают цифры по инструментам.
 
 ## 7. Решение проблем
@@ -120,7 +112,7 @@ SCROOGE_RTK=off            # переменная окружения: отклю
 | Симптом | Причина / решение |
 | --- | --- |
 | Команды не переписываются | rtk не установлен (`which rtk`), или сессия стартовала до плагина — перезапустите агента. |
-| headroom MCP «Failed to connect» | Нет бинаря (удалите `scrooge-headroom` до его установки) или запись не `headroom mcp serve`. |
+| headroom / serena MCP «Failed to connect» | Нет бинаря — `pip install "headroom-ai[all]"` / `uv tool install serena-agent` (сервера идут включёнными; до установки ошибка безвредна). Либо запись не `headroom mcp serve`. |
 | Нужен сырой вывод один раз | `SCROOGE_RAW=1 <команда>`. На сессию: `SCROOGE_RTK=off`. |
 | Подозрение на хук | Он fail-open (всегда exit 0); `SCROOGE_RTK=off` нейтрализует без удаления. |
 | Убрать всё | Удаление через менеджер плагинов каждого агента (см. §3) — больше ничего не трогалось. |

@@ -6,29 +6,15 @@
   },
   "description": "Token-saving plugins: rtk terminal-output compression, Headroom MCP blob compression, Serena symbol-level retrieval, token-hygiene skill.",
   "metadata": {
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "plugins": [
     {
       "name": "scrooge-kit",
       "source": "./plugins/claude-code",
-      "description": "Transparently routes terminal commands through rtk (60-90% output compression) + token-hygiene skill.",
+      "description": "Routes terminal commands through rtk (60-90% output compression) + token-hygiene skill + bundled Headroom & Serena MCP servers (require the headroom / serena binaries on PATH).",
       "category": "productivity",
-      "tags": ["tokens", "cost", "rtk", "compression"]
-    },
-    {
-      "name": "scrooge-headroom",
-      "source": "./plugins/claude-code-headroom",
-      "description": "Headroom MCP server (headroom_compress / headroom_retrieve / headroom_stats). Install only if the `headroom` CLI is on PATH: pip install \"headroom-ai[all]\".",
-      "category": "productivity",
-      "tags": ["tokens", "compression", "mcp", "headroom"]
-    },
-    {
-      "name": "scrooge-serena",
-      "source": "./plugins/claude-code-serena",
-      "description": "Serena MCP server: symbol-level code retrieval/editing over LSP — read symbols, not whole files. Install only if the `serena` CLI is on PATH: uv tool install serena-agent.",
-      "category": "productivity",
-      "tags": ["tokens", "lsp", "mcp", "serena"]
+      "tags": ["tokens", "cost", "rtk", "compression", "mcp"]
     }
   ]
 }
