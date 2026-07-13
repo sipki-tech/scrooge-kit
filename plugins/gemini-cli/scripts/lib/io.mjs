@@ -56,7 +56,6 @@ export async function runHook(handler, fallback = SILENT) {
 // Input shapes vary across hosts; probe the known variants.
 //   Claude Code / Codex / Gemini CLI / Grok: { tool_name, tool_input: { command } }
 //   Antigravity:                              { toolCall: { args: { CommandLine } } }
-//   Cursor beforeShellExecution:              { command }
 export function commandLineOf(input) {
   const args =
     input?.tool_input ??
@@ -64,13 +63,7 @@ export function commandLineOf(input) {
     input?.tool_call?.args ??
     input?.args ??
     {};
-  return (
-    args.command ??
-    args.CommandLine ??
-    args.commandLine ??
-    args.cmd ??
-    (typeof input?.command === "string" ? input.command : "")
-  );
+  return args.command ?? args.CommandLine ?? args.commandLine ?? args.cmd ?? "";
 }
 
 export function toolInputOf(input) {

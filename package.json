@@ -2,7 +2,7 @@
   "name": "@sipki-tech/scrooge-kit",
   "version": "0.2.0",
   "private": true,
-  "description": "Native token-saving plugins for coding agents: rtk terminal-output compression, Headroom MCP blob compression, token-hygiene skill — Claude Code, Codex, Gemini CLI, Antigravity, Grok, OpenCode, Cursor.",
+  "description": "Native token-saving plugins for terminal coding agents: rtk terminal-output compression, Headroom MCP blob compression, token-hygiene skill — Claude Code, Codex, Gemini CLI, Antigravity, Grok, OpenCode.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -16,6 +16,7 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "sync": "node scripts/sync.mjs",
+    "smoke": "node scripts/smoke-install.mjs",
     "pack:gemini": "node scripts/pack-gemini.mjs"
   },
   "engines": {
@@ -34,7 +35,6 @@
     "antigravity",
     "grok",
     "opencode",
-    "cursor",
     "mcp",
     "hooks"
   ]

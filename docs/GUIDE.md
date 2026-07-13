@@ -41,6 +41,8 @@ pip install "headroom-ai[all]"       # optional, Python 3.10+; or uv tool instal
 
 ## 3. Install per agent
 
+Every command below is exercised live against the real CLI (see the verification matrix in [agents.md](agents.md)); re-check on your machine anytime with `npm run smoke`.
+
 ### Claude Code
 ```
 /plugin marketplace add sipki-tech/scrooge-kit
@@ -51,16 +53,17 @@ Non-interactive: `claude plugin install scrooge-kit@scrooge-kit --scope user`. T
 
 ### Codex CLI (≥0.144)
 ```bash
-codex plugin marketplace add https://github.com/sipki-tech/scrooge-kit
+codex plugin marketplace add sipki-tech/scrooge-kit
 codex plugin add scrooge-kit@scrooge-kit
+codex plugin add scrooge-headroom@scrooge-kit   # only if `headroom` is on PATH
 ```
-Codex reads the same `.claude-plugin/marketplace.json`; a dedicated `plugins/codex/` (`.codex-plugin`) is also provided — pick whichever your build resolves.
+Codex resolves the repo's native `.agents/plugins/marketplace.json` (dedicated `plugins/codex/` with `.codex-plugin` manifest); older snapshots fall back to the legacy `.claude-plugin/marketplace.json`. Uninstall: `codex plugin remove scrooge-kit@scrooge-kit`.
 
 ### Grok Build
+```bash
+grok plugin install sipki-tech/scrooge-kit#plugins/grok
 ```
-grok plugin marketplace add sipki-tech/scrooge-kit
-```
-then install from the `/plugin` panel (Grok reads Claude marketplaces). Manual fallback: copy `plugins/grok/` to `~/.grok/plugins/scrooge-kit/`.
+Installs the dedicated Grok plugin straight from the repo subdirectory. `grok plugin marketplace add sipki-tech/scrooge-kit` also works (Grok reads the Claude marketplace) but resolves the Claude Code build of the plugin — prefer the subdir install. Uninstall: `grok plugin uninstall scrooge-kit`.
 
 ### Gemini CLI
 ```bash
@@ -73,23 +76,13 @@ Pulls the `scrooge-kit.gemini-extension.tar.gz` asset from the latest GitHub Rel
 git clone https://github.com/sipki-tech/scrooge-kit
 agy plugin install ./scrooge-kit/plugins/antigravity
 ```
-The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom is pre-registered in `mcp_config.json` with `"disabled": true` — remove that key once the binary is installed.
+**Never** run `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-installs every directory under a repo's `plugins/`, i.e. all six agent payloads. There is no `agy plugin update`; to update, pull and re-install. The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom is pre-registered in `mcp_config.json` with `"disabled": true` — remove that key once the binary is installed.
 
 ### OpenCode
-```jsonc
-// opencode.json
-{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }
+```bash
+opencode plugin @sipki-tech/scrooge-kit-opencode      # or -g for the global config
 ```
-Auto-installed from npm at startup. The plugin rewrites in-process (`tool.execute.before`) and registers the Headroom MCP **only when the binary is present** (checked at startup via the `config` hook).
-
-### Cursor
-The plugin (`plugins/cursor/`: always-applied rule + skill) is marketplace-ready but not yet listed publicly. Options now: add this repo as a **team marketplace**, or copy `plugins/cursor/rules/token-hygiene.mdc` into your project's `.cursor/rules/`. Cursor hooks can't rewrite commands, so the rule (agent prefixes `rtk` itself) is the mechanism.
-
-### Windsurf / Devin Desktop (manual)
-No plugin format exists. Manual setup:
-1. Rules: append `shared/rules/token-hygiene.md` to `~/.codeium/windsurf/memories/global_rules.md` (or `.devin/rules/` in a project).
-2. MCP (optional, needs the binary): add to `~/.codeium/windsurf/mcp_config.json`:
-   `{"mcpServers": {"headroom": {"command": "headroom", "args": ["mcp", "serve"]}}}`
+OpenCode's own plugin command adds the entry to `opencode.json` for you; adding `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` by hand works too. Auto-installed from npm at startup. The plugin rewrites in-process (`tool.execute.before`) and registers the Headroom MCP **only when the binary is present** (checked at startup via the `config` hook).
 
 ## 4. Day-to-day: the rewrite and its bypasses
 

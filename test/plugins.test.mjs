@@ -69,8 +69,21 @@ test("antigravity plugin keeps its loader traps", () => {
   const manifest = json("plugins/antigravity/plugin.json");
   assert.equal(typeof manifest.author, "object", "author must be an object");
   assert.ok(json("plugins/antigravity/hooks.json")["scrooge-kit"], "named top-level hook block");
+  const hookCmd = json("plugins/antigravity/hooks.json")["scrooge-kit"].PreToolUse[0].hooks[0].command;
+  assert.ok(!hookCmd.includes("${PLUGIN_ROOT}"), "agy 1.1.1 expands ${PLUGIN_ROOT} to empty — use hooks.json-relative paths");
   assert.equal(json("plugins/antigravity/mcp_config.json").mcpServers.headroom.disabled, true);
   assert.ok(!existsSync(join(ROOT, "plugins/antigravity/installed_version.json")), "never commit installed_version.json");
+});
+
+test("codex marketplace lists plugins whose sources exist", () => {
+  const marketplace = json(".agents/plugins/marketplace.json");
+  assert.equal(marketplace.name, "scrooge-kit");
+  for (const plugin of marketplace.plugins) {
+    assert.equal(plugin.source.source, "local", `${plugin.name}: codex-native source object`);
+    assert.ok(existsSync(join(ROOT, plugin.source.path)), `${plugin.name}: source path must exist`);
+  }
+  const codex = marketplace.plugins.find((p) => p.name === "scrooge-kit");
+  assert.ok(existsSync(join(ROOT, codex.source.path, ".codex-plugin", "plugin.json")));
 });
 
 test("gemini extension manifest is complete", () => {
@@ -78,14 +91,6 @@ test("gemini extension manifest is complete", () => {
   assert.equal(manifest.name, "scrooge-kit");
   assert.equal(manifest.contextFileName, "GEMINI.md");
   assert.ok(existsSync(join(ROOT, "plugins/gemini-cli/GEMINI.md")));
-});
-
-test("cursor plugin: manifest + always-applied rule", () => {
-  assert.equal(json("plugins/cursor/.cursor-plugin/plugin.json").name, "scrooge-kit");
-  const mdc = readFileSync(join(ROOT, "plugins/cursor/rules/token-hygiene.mdc"), "utf8");
-  assert.match(mdc, /^---\n/);
-  assert.match(mdc, /alwaysApply: true/);
-  assert.match(mdc, /rtk/);
 });
 
 test("opencode plugin loads, rewrites, and injects headroom conditionally", async () => {

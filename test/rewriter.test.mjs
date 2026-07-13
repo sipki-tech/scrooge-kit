@@ -56,14 +56,8 @@ test("antigravity dialect denies with suggestion", () => {
   assert.equal(res.allow_tool, false);
 });
 
-test("cursor dialect allows with agent_message", () => {
-  const res = handle({ command: "git diff" }, "cursor", RTK_ON);
-  assert.equal(res.permission, "allow");
-  assert.match(res.agent_message, /rtk git diff/);
-});
-
 test("non-dev command is silent in every dialect", () => {
-  for (const dialect of ["claude-code", "antigravity", "cursor"]) {
+  for (const dialect of ["claude-code", "antigravity"]) {
     assert.deepEqual(handle({ tool_input: { command: "ls -la" } }, dialect, RTK_ON), {});
   }
 });

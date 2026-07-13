@@ -46,12 +46,6 @@ export function handle(input, dialect, env = process.env) {
       return denyResponse(
         `[scrooge-kit] Run this through rtk to compress the output: \`${rewritten}\`. To intentionally run raw, prefix with SCROOGE_RAW=1.`,
       );
-    // Cursor beforeShellExecution can only gate/annotate, not rewrite.
-    case "cursor":
-      return {
-        permission: "allow",
-        agent_message: `[scrooge-kit] Prefer \`${rewritten}\` — rtk compresses the output. Prefix with SCROOGE_RAW=1 to skip.`,
-      };
     // Claude Code dialect; Gemini CLI, Codex and Grok follow the same
     // hookSpecificOutput shape (documented for Claude, best-effort mirrors
     // elsewhere — a host that ignores it simply runs the original command).

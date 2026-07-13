@@ -41,6 +41,8 @@ pip install "headroom-ai[all]"       # опционально, Python 3.10+; и�
 
 ## 3. Установка по агентам
 
+Каждая команда ниже прогнана вживую против реального CLI (матрица проверок — в [agents.md](agents.md)); перепроверить на своей машине можно в любой момент: `npm run smoke`.
+
 ### Claude Code
 ```
 /plugin marketplace add sipki-tech/scrooge-kit
@@ -51,16 +53,17 @@ pip install "headroom-ai[all]"       # опционально, Python 3.10+; и�
 
 ### Codex CLI (≥0.144)
 ```bash
-codex plugin marketplace add https://github.com/sipki-tech/scrooge-kit
+codex plugin marketplace add sipki-tech/scrooge-kit
 codex plugin add scrooge-kit@scrooge-kit
+codex plugin add scrooge-headroom@scrooge-kit   # только если `headroom` на PATH
 ```
-Codex читает тот же `.claude-plugin/marketplace.json`; выделенный `plugins/codex/` (`.codex-plugin`) тоже есть — используйте то, что резолвит ваш билд.
+Codex резолвит нативный `.agents/plugins/marketplace.json` репозитория (выделенный `plugins/codex/` с манифестом `.codex-plugin`); старые снапшоты падают назад на legacy `.claude-plugin/marketplace.json`. Удаление: `codex plugin remove scrooge-kit@scrooge-kit`.
 
 ### Grok Build
+```bash
+grok plugin install sipki-tech/scrooge-kit#plugins/grok
 ```
-grok plugin marketplace add sipki-tech/scrooge-kit
-```
-затем установка из панели `/plugin` (Grok читает Claude-маркетплейсы). Ручной фолбэк: скопировать `plugins/grok/` в `~/.grok/plugins/scrooge-kit/`.
+Ставит выделенный Grok-плагин прямо из поддиректории репозитория. `grok plugin marketplace add sipki-tech/scrooge-kit` тоже работает (Grok читает Claude-маркетплейс), но резолвит Claude Code-сборку плагина — предпочитайте subdir-установку. Удаление: `grok plugin uninstall scrooge-kit`.
 
 ### Gemini CLI
 ```bash
@@ -73,23 +76,13 @@ gemini extensions install https://github.com/sipki-tech/scrooge-kit
 git clone https://github.com/sipki-tech/scrooge-kit
 agy plugin install ./scrooge-kit/plugins/antigravity
 ```
-Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom прописан в `mcp_config.json` с `"disabled": true` — уберите ключ после установки бинаря.
+**Никогда** не запускайте `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-установит каждую папку под `plugins/` репозитория, то есть все шесть агентских payload'ов. Команды `agy plugin update` нет; для обновления — pull и переустановка. Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom прописан в `mcp_config.json` с `"disabled": true` — уберите ключ после установки бинаря.
 
 ### OpenCode
-```jsonc
-// opencode.json
-{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }
+```bash
+opencode plugin @sipki-tech/scrooge-kit-opencode      # или -g для глобального конфига
 ```
-Автоматически ставится из npm на старте. Плагин переписывает in-process (`tool.execute.before`) и регистрирует Headroom MCP **только при наличии бинаря** (проверка на старте через `config`-хук).
-
-### Cursor
-Плагин (`plugins/cursor/`: always-applied правило + скилл) готов к маркетплейсу, но публично пока не листится. Варианты сейчас: добавить этот репо как **team-маркетплейс** или скопировать `plugins/cursor/rules/token-hygiene.mdc` в `.cursor/rules/` проекта. Хуки Cursor не переписывают команды, поэтому механизм — правило (агент сам ставит префикс `rtk`).
-
-### Windsurf / Devin Desktop (вручную)
-Формата плагинов нет. Ручная настройка:
-1. Rules: дописать `shared/rules/token-hygiene.md` в `~/.codeium/windsurf/memories/global_rules.md` (или `.devin/rules/` в проекте).
-2. MCP (опционально, нужен бинарь): в `~/.codeium/windsurf/mcp_config.json`:
-   `{"mcpServers": {"headroom": {"command": "headroom", "args": ["mcp", "serve"]}}}`
+Штатная команда OpenCode сама добавит запись в `opencode.json`; ручное добавление `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` тоже работает. Автоматически ставится из npm на старте. Плагин переписывает in-process (`tool.execute.before`) и регистрирует Headroom MCP **только при наличии бинаря** (проверка на старте через `config`-хук).
 
 ## 4. Повседневность: перезапись и обходы
 

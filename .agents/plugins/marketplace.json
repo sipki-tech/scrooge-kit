@@ -1,0 +1,24 @@
+{
+  "name": "scrooge-kit",
+  "interface": {
+    "displayName": "Scrooge Kit"
+  },
+  "plugins": [
+    {
+      "name": "scrooge-kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "scrooge-headroom",
+      "source": {
+        "source": "local",
+        "path": "./plugins/claude-code-headroom"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -16,7 +16,7 @@
 </table>
 
 <p align="center">
-  <img alt="native plugins" src="https://img.shields.io/badge/native%20plugins-7%20agents-5B8DEF?style=for-the-badge&labelColor=111827" />
+  <img alt="native plugins" src="https://img.shields.io/badge/native%20plugins-6%20agents-5B8DEF?style=for-the-badge&labelColor=111827" />
   <img alt="token savings" src="https://img.shields.io/badge/terminal%20tokens-−60–90%25-F59E0B?style=for-the-badge&labelColor=111827" />
   <img alt="zero deps" src="https://img.shields.io/badge/dependencies-0-22C55E?style=for-the-badge&labelColor=111827" />
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-64748B?style=for-the-badge&labelColor=111827" />
@@ -44,18 +44,18 @@
 
 ## Установка (нативно, по агентам)
 
+Каждая команда ниже прогнана против реального CLI — матрица проверок в [docs/agents.md](docs/agents.md), песочный перепрогон — `npm run smoke`.
+
 | Агент | Установка |
 |---|---|
 | **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` (+ `scrooge-headroom@scrooge-kit`, если установлен бинарь headroom) |
-| **Codex CLI** | `codex plugin marketplace add https://github.com/sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
-| **Grok Build** | `grok plugin marketplace add sipki-tech/scrooge-kit` → установка из `/plugin` (читает Claude-маркетплейс) |
+| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
+| **Grok Build** | `grok plugin install sipki-tech/scrooge-kit#plugins/grok` |
 | **Gemini CLI** | `gemini extensions install https://github.com/sipki-tech/scrooge-kit` (тянет Release-архив) |
-| **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` |
-| **OpenCode** | добавить `"plugin": ["@sipki-tech/scrooge-kit-opencode"]` в `opencode.json` |
-| **Cursor** | плагин готов в `plugins/cursor/` — добавьте репо как team-маркетплейс или скопируйте `rules/token-hygiene.mdc` в проект |
-| **Windsurf / Devin** | формата плагинов нет — ручная настройка в [docs/GUIDE.ru.md §6](docs/GUIDE.ru.md) |
+| **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` — никогда не давайте `agy plugin install` URL репозитория: agy bulk-установит каждую папку под `plugins/` |
+| **OpenCode** | `opencode plugin @sipki-tech/scrooge-kit-opencode` (или добавьте `"plugin": ["@sipki-tech/scrooge-kit-opencode"]` в `opencode.json` сами) |
 
-Удаление тем же путём: `/plugin uninstall`, `codex plugin remove`, `gemini extensions uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, убрать запись из конфига (OpenCode).
+Удаление тем же путём: `/plugin uninstall`, `codex plugin remove scrooge-kit@scrooge-kit`, `grok plugin uninstall scrooge-kit`, `gemini extensions uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, убрать запись из конфига (OpenCode). Обновление — командой update соответствующего менеджера (у `agy` update нет — переустановка).
 
 ## Зачем
 
@@ -76,15 +76,15 @@
 ## Структура репо
 
 ```
-.claude-plugin/marketplace.json   # маркетплейс: scrooge-kit + scrooge-headroom (его читают и Codex, и Grok)
+.claude-plugin/marketplace.json   # Claude Code-маркетплейс: scrooge-kit + scrooge-headroom (его читает и Grok)
+.agents/plugins/marketplace.json  # Codex-нативный маркетплейс (те же два плагина, object-sources)
 plugins/
   claude-code/           # .claude-plugin + PreToolUse-хук + скилл
   claude-code-headroom/  # MCP-only плагин (ставьте при наличии бинаря headroom)
   codex/                 # .codex-plugin + PreToolUse-хук + скилл
   gemini-cli/            # gemini-extension.json + BeforeTool-хук + GEMINI.md (релизится как tar.gz)
   antigravity/           # plugin.json + hooks.json (deny-подсказка) + mcp_config.json (disabled) + rules
-  grok/                  # хуки + скилл, Claude-совместимая раскладка
-  cursor/                # .cursor-plugin + always-on правило + скилл
+  grok/                  # .claude-plugin манифест + хуки + скилл (Claude-совместимая раскладка)
   opencode/              # npm-пакет: in-process перезапись + условный headroom MCP
 shared/                  # единственный источник правды: policy, rewriter, io, скилл, rules
 scripts/sync.mjs         # разливает shared/ по плагинам (копии коммитятся; тест следит за синхронностью)
@@ -101,6 +101,7 @@ scripts/sync.mjs         # разливает shared/ по плагинам (к�
 ```bash
 npm test        # node --test, ноль зависимостей: политика, диалекты хуков, манифесты, sync-проверка
 npm run sync    # переразлить shared/ после правок
+npm run smoke   # песочная нативная установка/удаление через каждый агентский CLI на машине
 ```
 
 ## Благодарности

@@ -11,23 +11,14 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const SCRIPT_PLUGINS = ["claude-code", "codex", "gemini-cli", "antigravity", "grok"];
-const SKILL_PLUGINS = ["claude-code", "codex", "gemini-cli", "antigravity", "grok", "cursor"];
+const SKILL_PLUGINS = ["claude-code", "codex", "gemini-cli", "antigravity", "grok"];
 
 const rules = readFileSync(join(ROOT, "shared", "rules", "token-hygiene.md"), "utf8");
-
-// Cursor rules are .mdc with frontmatter; everything else takes the md as-is.
-const CURSOR_MDC = `---
-description: Token hygiene — rtk-prefixed commands, selective reads, no raw logs
-alwaysApply: true
----
-
-${rules}`;
 
 // target path (relative to repo root) -> desired content source
 const FILE_TARGETS = {
   "plugins/antigravity/rules/token-hygiene.md": rules,
   "plugins/gemini-cli/GEMINI.md": rules,
-  "plugins/cursor/rules/token-hygiene.mdc": CURSOR_MDC,
 };
 
 const DIR_TARGETS = [

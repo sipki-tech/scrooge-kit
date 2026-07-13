@@ -16,7 +16,7 @@
 </table>
 
 <p align="center">
-  <img alt="native plugins" src="https://img.shields.io/badge/native%20plugins-7%20agents-5B8DEF?style=for-the-badge&labelColor=111827" />
+  <img alt="native plugins" src="https://img.shields.io/badge/native%20plugins-6%20agents-5B8DEF?style=for-the-badge&labelColor=111827" />
   <img alt="token savings" src="https://img.shields.io/badge/terminal%20tokens-−60–90%25-F59E0B?style=for-the-badge&labelColor=111827" />
   <img alt="zero deps" src="https://img.shields.io/badge/dependencies-0-22C55E?style=for-the-badge&labelColor=111827" />
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-64748B?style=for-the-badge&labelColor=111827" />
@@ -44,18 +44,18 @@ Prerequisite for the savings: `brew install rtk` (hooks are silent no-ops withou
 
 ## Install (native, per agent)
 
+Every command below is exercised against the real CLI — see [docs/agents.md](docs/agents.md) for the verification matrix and `npm run smoke` for the sandboxed re-check.
+
 | Agent | Install |
 |---|---|
 | **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` (+ `scrooge-headroom@scrooge-kit` if the headroom binary is installed) |
-| **Codex CLI** | `codex plugin marketplace add https://github.com/sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
-| **Grok Build** | `grok plugin marketplace add sipki-tech/scrooge-kit` → install from `/plugin` (reads the Claude marketplace) |
+| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
+| **Grok Build** | `grok plugin install sipki-tech/scrooge-kit#plugins/grok` |
 | **Gemini CLI** | `gemini extensions install https://github.com/sipki-tech/scrooge-kit` (pulls the release archive) |
-| **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` |
-| **OpenCode** | add `"plugin": ["@sipki-tech/scrooge-kit-opencode"]` to `opencode.json` |
-| **Cursor** | plugin ready in `plugins/cursor/` — add this repo as a team marketplace, or copy `rules/token-hygiene.mdc` into your project |
-| **Windsurf / Devin** | no plugin format — manual setup in [docs/GUIDE.md §6](docs/GUIDE.md) |
+| **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` — never point `agy plugin install` at the repo URL: agy bulk-installs every directory under `plugins/` |
+| **OpenCode** | `opencode plugin @sipki-tech/scrooge-kit-opencode` (or add `"plugin": ["@sipki-tech/scrooge-kit-opencode"]` to `opencode.json` yourself) |
 
-Uninstall the same way: `/plugin uninstall`, `codex plugin remove`, `gemini extensions uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, remove the config entry (OpenCode).
+Uninstall the same way: `/plugin uninstall`, `codex plugin remove scrooge-kit@scrooge-kit`, `grok plugin uninstall scrooge-kit`, `gemini extensions uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, remove the config entry (OpenCode). Update: re-run the marketplace/extension update command of the agent (`agy` has no update — re-install).
 
 ## Why
 
@@ -76,15 +76,15 @@ Uninstall the same way: `/plugin uninstall`, `codex plugin remove`, `gemini exte
 ## Repo layout
 
 ```
-.claude-plugin/marketplace.json   # marketplace: scrooge-kit + scrooge-headroom (Codex and Grok read it too)
+.claude-plugin/marketplace.json   # Claude Code marketplace: scrooge-kit + scrooge-headroom (Grok reads it too)
+.agents/plugins/marketplace.json  # Codex-native marketplace (same two plugins, object sources)
 plugins/
   claude-code/           # .claude-plugin + PreToolUse hook + skill
   claude-code-headroom/  # MCP-only plugin (install when headroom binary exists)
   codex/                 # .codex-plugin + PreToolUse hook + skill
   gemini-cli/            # gemini-extension.json + BeforeTool hook + GEMINI.md (released as tar.gz)
   antigravity/           # plugin.json + hooks.json (deny-nudge) + mcp_config.json (disabled) + rules
-  grok/                  # hooks + skill, Claude-compatible layout
-  cursor/                # .cursor-plugin + always-on rule + skill
+  grok/                  # .claude-plugin manifest + hooks + skill (Claude-compatible layout)
   opencode/              # npm package: in-process rewrite + conditional headroom MCP
 shared/                  # single source of truth: policy, rewriter, io, skill, rules
 scripts/sync.mjs         # distributes shared/ into plugins (copies are committed; test enforces sync)
@@ -101,6 +101,7 @@ The rewrite policy (prefix list, bypasses) lives in exactly one file: `shared/sc
 ```bash
 npm test        # node --test, zero dependencies: policy, hook dialects, manifests, sync check
 npm run sync    # re-distribute shared/ after editing it
+npm run smoke   # sandboxed native install/uninstall against every agent CLI on this machine
 ```
 
 ## Acknowledgments
