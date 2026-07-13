@@ -1,7 +1,7 @@
 {
   "name": "scrooge-headroom",
   "displayName": "Scrooge Headroom",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Headroom MCP server: headroom_compress / headroom_retrieve / headroom_stats — reversible 60-95% compression for big blobs. Requires the headroom CLI on PATH (pip install \"headroom-ai[all]\"); install this plugin only after the binary works.",
   "author": {
     "name": "sipki-tech",

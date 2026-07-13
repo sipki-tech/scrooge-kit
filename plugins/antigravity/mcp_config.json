@@ -4,6 +4,11 @@
       "command": "headroom",
       "args": ["mcp", "serve"],
       "disabled": true
+    },
+    "serena": {
+      "command": "serena",
+      "args": ["start-mcp-server", "--context", "ide-assistant"],
+      "disabled": true
     }
   }
 }

@@ -163,13 +163,19 @@ function testClaude() {
     run(["claude", "plugin", "marketplace", "add", ROOT], env),
     run(["claude", "plugin", "install", "scrooge-kit@scrooge-kit", "--scope", "user"], env),
     run(["claude", "plugin", "install", "scrooge-headroom@scrooge-kit", "--scope", "user"], env),
+    run(["claude", "plugin", "install", "scrooge-serena@scrooge-kit", "--scope", "user"], env),
   ];
   const list = run(["claude", "plugin", "list"], env);
-  list.ok = list.ok && list.out.includes("scrooge-kit") && list.out.includes("scrooge-headroom");
-  list.name = "claude plugin list → both plugins present";
+  list.ok =
+    list.ok &&
+    list.out.includes("scrooge-kit") &&
+    list.out.includes("scrooge-headroom") &&
+    list.out.includes("scrooge-serena");
+  list.name = "claude plugin list → all three plugins present";
   steps.push(list);
   steps.push(run(["claude", "plugin", "uninstall", "scrooge-kit@scrooge-kit", "--scope", "user"], env));
   steps.push(run(["claude", "plugin", "uninstall", "scrooge-headroom@scrooge-kit", "--scope", "user"], env));
+  steps.push(run(["claude", "plugin", "uninstall", "scrooge-serena@scrooge-kit", "--scope", "user"], env));
   rmSync(sb, { recursive: true, force: true });
   report("claude-code", steps.every((s) => s.ok) ? "PASS" : "FAIL", steps);
 }

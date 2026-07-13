@@ -1,5 +1,6 @@
-// OpenCode plugin: in-process command rewriting + conditional Headroom MCP.
-// Fail-open everywhere — a bug here must cost savings, never a session.
+// OpenCode plugin: in-process command rewriting + conditional MCP servers
+// (Headroom, Serena). Fail-open everywhere — a bug here must cost savings,
+// never a session.
 import { execFileSync } from "node:child_process";
 import { rewriteCommand } from "./lib/policy.mjs";
 
@@ -31,17 +32,28 @@ export const ScroogeKit = async () => ({
   },
   config: async (config) => {
     try {
-      // Register Headroom only when the binary exists — a missing binary
-      // must not produce MCP connection errors.
-      if (!binaryAvailable("headroom")) return;
-      config.mcp = {
-        ...(config.mcp ?? {}),
-        headroom: config.mcp?.headroom ?? {
-          type: "local",
-          command: ["headroom", "mcp", "serve"],
-          enabled: true,
-        },
-      };
+      // Register each MCP server only when its binary exists — a missing
+      // binary must not produce MCP connection errors.
+      if (binaryAvailable("headroom")) {
+        config.mcp = {
+          ...(config.mcp ?? {}),
+          headroom: config.mcp?.headroom ?? {
+            type: "local",
+            command: ["headroom", "mcp", "serve"],
+            enabled: true,
+          },
+        };
+      }
+      if (binaryAvailable("serena")) {
+        config.mcp = {
+          ...(config.mcp ?? {}),
+          serena: config.mcp?.serena ?? {
+            type: "local",
+            command: ["serena", "start-mcp-server", "--context", "ide-assistant"],
+            enabled: true,
+          },
+        };
+      }
     } catch {
       // fail-open
     }

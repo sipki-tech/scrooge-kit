@@ -13,7 +13,7 @@ Keep the context window filled with signal. Terminal output, file contents, and 
 
 1. **Terminal commands go through `rtk`.** Prefix dev commands (git, tests, builds, package managers, linters, docker, kubectl) with `rtk`: `rtk git status`, `rtk npm test`. If the `rtk` binary is missing, run the command as-is — never fail a task over the prefix. (When the scrooge-kit hook is installed it rewrites the command for you; the prefix habit is the fallback.)
 2. **rtk bypass.** When exact, unfiltered output matters (parsing a specific error, user explicitly asks for raw output, a critical pipeline where lost detail is unacceptable), prefix with `SCROOGE_RAW=1` and say why. Compression is a default, not a law.
-3. **Selective reading.** Do not read whole files when a range suffices. Locate the region first (grep/AST tooling), then read only that region. Re-reading a file you already saw is almost always waste.
+3. **Selective reading.** Do not read whole files when a range suffices. Locate the region first (grep/AST tooling), then read only that region. When Serena MCP tools are available, prefer symbol-level retrieval (find symbol, references, symbol body) over whole-file reads. Re-reading a file you already saw is almost always waste.
 4. **No full logs.** Never paste complete build/test logs into the context. Extract the failing lines plus a few lines of surrounding context. For huge blobs, use the headroom MCP tools (`headroom_compress`, originals recoverable via `headroom_retrieve`) when configured.
 5. **No echo of code in prose.** After editing, do not restate the code you just wrote; reference the file and lines.
 

@@ -24,19 +24,21 @@ rtk запускает настоящую команду, срезает шум
 в контекст агента попадает ~10–40% исходного вывода — падения на месте
 ```
 
-Три слоя:
+Четыре слоя:
 
 1. **rtk** (терминал) — хук выше; прозрачный там, где хост умеет переписывать input, совещательный в остальных.
 2. **Headroom** (блобы) — MCP-инструменты `headroom_compress` / `headroom_retrieve` / `headroom_stats`; скилл `scrooge-hygiene` учит агента ими пользоваться. Обратимо — оригиналы кэшируются.
-3. **Скилл + rules** — выборочное чтение, никаких сырых логов, этикет обходов.
+3. **Serena** (навигация по коду) — symbol-level чтение/правка через LSP (40+ языков): агент читает символ и его ссылки вместо целых файлов.
+4. **Скилл + rules** — выборочное чтение, никаких сырых логов, этикет обходов.
 
-Каждый слой мягко деградирует: нет бинаря rtk → хуки тихо бездействуют; нет headroom → его MCP-плагин просто не ставится (или идёт выключенным).
+Каждый слой мягко деградирует: нет бинаря rtk → хуки тихо бездействуют; нет headroom/serena → соответствующий MCP-плагин просто не ставится (или идёт выключенным).
 
 ## 2. Предусловия
 
 ```bash
 brew install rtk                     # или: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
 pip install "headroom-ai[all]"       # опционально, Python 3.10+; или uv tool install / pipx install
+uv tool install serena-agent         # опционально: Serena LSP-навигация (`serena` на PATH)
 ```
 
 ## 3. Установка по агентам
@@ -48,6 +50,7 @@ pip install "headroom-ai[all]"       # опционально, Python 3.10+; и�
 /plugin marketplace add sipki-tech/scrooge-kit
 /plugin install scrooge-kit@scrooge-kit
 /plugin install scrooge-headroom@scrooge-kit    # только если `headroom` на PATH
+/plugin install scrooge-serena@scrooge-kit      # только если `serena` на PATH
 ```
 Неинтерактивно: `claude plugin install scrooge-kit@scrooge-kit --scope user`. Headroom MCP — **отдельный плагин**, потому что MCP-серверы в плагинах Claude Code нельзя шипнуть выключенными: установка без бинаря показывала бы ошибки подключения.
 
@@ -56,6 +59,7 @@ pip install "headroom-ai[all]"       # опционально, Python 3.10+; и�
 codex plugin marketplace add sipki-tech/scrooge-kit
 codex plugin add scrooge-kit@scrooge-kit
 codex plugin add scrooge-headroom@scrooge-kit   # только если `headroom` на PATH
+codex plugin add scrooge-serena@scrooge-kit     # только если `serena` на PATH
 ```
 Codex резолвит нативный `.agents/plugins/marketplace.json` репозитория (выделенный `plugins/codex/` с манифестом `.codex-plugin`); старые снапшоты падают назад на legacy `.claude-plugin/marketplace.json`. Удаление: `codex plugin remove scrooge-kit@scrooge-kit`.
 
@@ -76,13 +80,13 @@ gemini extensions install https://github.com/sipki-tech/scrooge-kit
 git clone https://github.com/sipki-tech/scrooge-kit
 agy plugin install ./scrooge-kit/plugins/antigravity
 ```
-**Никогда** не запускайте `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-установит каждую папку под `plugins/` репозитория, то есть все шесть агентских payload'ов. Команды `agy plugin update` нет; для обновления — pull и переустановка. Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom прописан в `mcp_config.json` с `"disabled": true` — уберите ключ после установки бинаря.
+**Никогда** не запускайте `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-установит каждую папку под `plugins/` репозитория, то есть все шесть агентских payload'ов. Команды `agy plugin update` нет; для обновления — pull и переустановка. Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom и Serena прописаны в `mcp_config.json` с `"disabled": true` — уберите ключ у каждого после установки соответствующего бинаря (переустановка плагина вернёт флаг).
 
 ### OpenCode
 ```bash
 opencode plugin @sipki-tech/scrooge-kit-opencode      # или -g для глобального конфига
 ```
-Штатная команда OpenCode сама добавит запись в `opencode.json`; ручное добавление `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` тоже работает. Автоматически ставится из npm на старте. Плагин переписывает in-process (`tool.execute.before`) и регистрирует Headroom MCP **только при наличии бинаря** (проверка на старте через `config`-хук).
+Штатная команда OpenCode сама добавит запись в `opencode.json`; ручное добавление `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` тоже работает. Автоматически ставится из npm на старте. Плагин переписывает in-process (`tool.execute.before`) и регистрирует MCP-серверы Headroom и Serena **только при наличии соответствующего бинаря** (проверка на старте через `config`-хук).
 
 ## 4. Повседневность: перезапись и обходы
 

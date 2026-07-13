@@ -38,9 +38,10 @@ big blobs / logs / files ──► [Headroom: MCP compress]      ──► LLM A
 
 - **[rtk](https://github.com/rtk-ai/rtk)** — the hook transparently rewrites `git status` → `rtk git status`; output enters the context compressed, failures intact.
 - **[Headroom](https://github.com/headroomlabs-ai/headroom)** — reversible blob compression via MCP tools (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
+- **[Serena](https://github.com/oraios/serena)** — symbol-level code retrieval/editing over LSP (40+ languages): the agent reads symbols and references instead of whole files.
 - **scrooge-hygiene skill + rules** — selective reads, no raw logs, bypass etiquette.
 
-Prerequisite for the savings: `brew install rtk` (hooks are silent no-ops without it) and optionally `pip install "headroom-ai[all]"`.
+Prerequisite for the savings: `brew install rtk` (hooks are silent no-ops without it); optionally `pip install "headroom-ai[all]"` and `uv tool install serena-agent`.
 
 ## Install (native, per agent)
 
@@ -48,8 +49,8 @@ Every command below is exercised against the real CLI — see [docs/agents.md](d
 
 | Agent | Install |
 |---|---|
-| **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` (+ `scrooge-headroom@scrooge-kit` if the headroom binary is installed) |
-| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
+| **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` (+ `scrooge-headroom@scrooge-kit` / `scrooge-serena@scrooge-kit` if the respective binary is installed) |
+| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` (+ `scrooge-headroom` / `scrooge-serena` the same way) |
 | **Grok Build** | `grok plugin install sipki-tech/scrooge-kit#plugins/grok` |
 | **Gemini CLI** | `gemini extensions install https://github.com/sipki-tech/scrooge-kit` (pulls the release archive) |
 | **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` — never point `agy plugin install` at the repo URL: agy bulk-installs every directory under `plugins/` |
@@ -81,6 +82,7 @@ Uninstall the same way: `/plugin uninstall`, `codex plugin remove scrooge-kit@sc
 plugins/
   claude-code/           # .claude-plugin + PreToolUse hook + skill
   claude-code-headroom/  # MCP-only plugin (install when headroom binary exists)
+  claude-code-serena/    # MCP-only plugin: Serena LSP retrieval (install when serena binary exists)
   codex/                 # .codex-plugin + PreToolUse hook + skill
   gemini-cli/            # gemini-extension.json + BeforeTool hook + GEMINI.md (released as tar.gz)
   antigravity/           # plugin.json + hooks.json (deny-nudge) + mcp_config.json (disabled) + rules

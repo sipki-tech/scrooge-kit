@@ -75,6 +75,14 @@ test("antigravity plugin keeps its loader traps", () => {
   assert.ok(!existsSync(join(ROOT, "plugins/antigravity/installed_version.json")), "never commit installed_version.json");
 });
 
+test("serena plugin is MCP-only with the ide-assistant context", () => {
+  assert.equal(json("plugins/claude-code-serena/.claude-plugin/plugin.json").name, "scrooge-serena");
+  const mcp = json("plugins/claude-code-serena/.mcp.json").mcpServers.serena;
+  assert.equal(mcp.command, "serena");
+  assert.deepEqual(mcp.args, ["start-mcp-server", "--context", "ide-assistant"]);
+  assert.ok(!existsSync(join(ROOT, "plugins/claude-code-serena/hooks")), "MCP-only: no hooks");
+});
+
 test("codex marketplace lists plugins whose sources exist", () => {
   const marketplace = json(".agents/plugins/marketplace.json");
   assert.equal(marketplace.name, "scrooge-kit");

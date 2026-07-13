@@ -24,19 +24,21 @@ rtk runs the real command, strips the noise
 agent context receives ~10–40% of the original output — failures intact
 ```
 
-Three layers:
+Four layers:
 
 1. **rtk** (terminal) — the hook above; transparent where the host supports input rewriting, advisory elsewhere.
 2. **Headroom** (blobs) — MCP tools `headroom_compress` / `headroom_retrieve` / `headroom_stats`; the `scrooge-hygiene` skill teaches the agent to use them. Reversible — originals are cached.
-3. **Skill + rules** — selective reads, no raw logs, bypass etiquette.
+3. **Serena** (code navigation) — symbol-level retrieval and editing over LSP (40+ languages): the agent reads a symbol or its references instead of whole files.
+4. **Skill + rules** — selective reads, no raw logs, bypass etiquette.
 
-Every layer degrades gracefully: no rtk binary → hooks are silent no-ops; no headroom binary → its MCP plugin simply isn't installed (or ships disabled).
+Every layer degrades gracefully: no rtk binary → hooks are silent no-ops; no headroom/serena binary → the corresponding MCP plugin simply isn't installed (or ships disabled).
 
 ## 2. Prerequisites
 
 ```bash
 brew install rtk                     # or: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
 pip install "headroom-ai[all]"       # optional, Python 3.10+; or uv tool install / pipx install
+uv tool install serena-agent         # optional: Serena LSP retrieval (`serena` on PATH)
 ```
 
 ## 3. Install per agent
@@ -48,6 +50,7 @@ Every command below is exercised live against the real CLI (see the verification
 /plugin marketplace add sipki-tech/scrooge-kit
 /plugin install scrooge-kit@scrooge-kit
 /plugin install scrooge-headroom@scrooge-kit    # only if `headroom` is on PATH
+/plugin install scrooge-serena@scrooge-kit      # only if `serena` is on PATH
 ```
 Non-interactive: `claude plugin install scrooge-kit@scrooge-kit --scope user`. The headroom MCP is a **separate plugin** because Claude Code plugins can't ship MCP servers disabled — installing it without the binary would show connection errors.
 
@@ -56,6 +59,7 @@ Non-interactive: `claude plugin install scrooge-kit@scrooge-kit --scope user`. T
 codex plugin marketplace add sipki-tech/scrooge-kit
 codex plugin add scrooge-kit@scrooge-kit
 codex plugin add scrooge-headroom@scrooge-kit   # only if `headroom` is on PATH
+codex plugin add scrooge-serena@scrooge-kit     # only if `serena` is on PATH
 ```
 Codex resolves the repo's native `.agents/plugins/marketplace.json` (dedicated `plugins/codex/` with `.codex-plugin` manifest); older snapshots fall back to the legacy `.claude-plugin/marketplace.json`. Uninstall: `codex plugin remove scrooge-kit@scrooge-kit`.
 
@@ -76,13 +80,13 @@ Pulls the `scrooge-kit.gemini-extension.tar.gz` asset from the latest GitHub Rel
 git clone https://github.com/sipki-tech/scrooge-kit
 agy plugin install ./scrooge-kit/plugins/antigravity
 ```
-**Never** run `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-installs every directory under a repo's `plugins/`, i.e. all six agent payloads. There is no `agy plugin update`; to update, pull and re-install. The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom is pre-registered in `mcp_config.json` with `"disabled": true` — remove that key once the binary is installed.
+**Never** run `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-installs every directory under a repo's `plugins/`, i.e. all six agent payloads. There is no `agy plugin update`; to update, pull and re-install. The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom and Serena are pre-registered in `mcp_config.json` with `"disabled": true` — remove that key for each once the corresponding binary is installed (re-installing the plugin restores the flag).
 
 ### OpenCode
 ```bash
 opencode plugin @sipki-tech/scrooge-kit-opencode      # or -g for the global config
 ```
-OpenCode's own plugin command adds the entry to `opencode.json` for you; adding `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` by hand works too. Auto-installed from npm at startup. The plugin rewrites in-process (`tool.execute.before`) and registers the Headroom MCP **only when the binary is present** (checked at startup via the `config` hook).
+OpenCode's own plugin command adds the entry to `opencode.json` for you; adding `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` by hand works too. Auto-installed from npm at startup. The plugin rewrites in-process (`tool.execute.before`) and registers the Headroom and Serena MCP servers **only when the respective binary is present** (checked at startup via the `config` hook).
 
 ## 4. Day-to-day: the rewrite and its bypasses
 

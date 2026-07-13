@@ -19,6 +19,14 @@
         "path": "./plugins/claude-code-headroom"
       },
       "category": "Productivity"
+    },
+    {
+      "name": "scrooge-serena",
+      "source": {
+        "source": "local",
+        "path": "./plugins/claude-code-serena"
+      },
+      "category": "Productivity"
     }
   ]
 }

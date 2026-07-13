@@ -24,11 +24,11 @@ Plugin systems of these agents are young and change fast; re-run this whenever a
 
 ## claude-code [verified]
 - Native plugin `plugins/claude-code/` + marketplace at repo root. PreToolUse hook (matcher `Bash`) rewrites via `hookSpecificOutput.updatedInput`; script referenced through `${CLAUDE_PLUGIN_ROOT}`.
-- Headroom is the separate `scrooge-headroom` plugin: Claude Code plugin MCP servers cannot ship disabled, so it must only be installed when the binary exists.
+- Headroom and Serena are the separate `scrooge-headroom` / `scrooge-serena` plugins: Claude Code plugin MCP servers cannot ship disabled, so each must only be installed when its binary exists (`headroom` via pip, `serena` via `uv tool install serena-agent`).
 
 ## codex [verified]
 - `plugins/codex/` with `.codex-plugin/plugin.json`; native PreToolUse hooks since ~v0.144, `PLUGIN_ROOT` env with a `CLAUDE_PLUGIN_ROOT` alias (we use the alias for one shared hooks format). Matcher covers `shell|local_shell|exec_command|Bash`.
-- The repo ships the Codex-native marketplace at `.agents/plugins/marketplace.json` (object sources → `plugins/codex` and `plugins/claude-code-headroom`); Codex prefers it over the legacy `.claude-plugin/marketplace.json`, which older snapshots still resolve (they get the claude-code plugin — functionally equivalent).
+- The repo ships the Codex-native marketplace at `.agents/plugins/marketplace.json` (object sources → `plugins/codex`, `plugins/claude-code-headroom`, `plugins/claude-code-serena`); Codex prefers it over the legacy `.claude-plugin/marketplace.json`, which older snapshots still resolve (they get the claude-code plugin — functionally equivalent).
 - Full cycle proven on 0.144.1: `codex plugin marketplace add` (local path and `owner/repo`), `codex plugin add scrooge-kit@scrooge-kit`, `list`, `remove`.
 
 ## gemini-cli [verified]
@@ -38,7 +38,7 @@ Plugin systems of these agents are young and change fast; re-run this whenever a
 - The rewriter answers in the Claude-style `hookSpecificOutput.updatedInput` dialect; if a build doesn't support input rewriting, the original command runs (fail-open).
 
 ## antigravity [verified]
-- `plugins/antigravity/`: `plugin.json` (object `author`), root-level `hooks.json` with the named top-level block, `mcp_config.json` with headroom `"disabled": true` (agy supports the flag), rules/, skills/, scripts/.
+- `plugins/antigravity/`: `plugin.json` (object `author`), root-level `hooks.json` with the named top-level block, `mcp_config.json` with headroom and serena `"disabled": true` (agy supports the flag; enable by deleting the key once the binary exists — a session-level `/mcp` toggle does NOT persist to this file), rules/, skills/, scripts/.
 - **Hook command uses a hooks.json-relative path** (`node "scripts/rtk-rewriter.mjs" antigravity`): agy 1.1.1 expands `${PLUGIN_ROOT}` to an empty string, and the handler cwd is the hooks.json directory. A test guards against reintroducing the variable.
 - Install: `agy plugin install ./scrooge-kit/plugins/antigravity` (local path after clone). **Bulk trap:** pointing `agy plugin install` at the repo URL installs every directory under `plugins/` — all six agent payloads — so there is deliberately no remote one-liner. No `agy plugin update` either: update = pull + re-install. `installed_version.json` is written by the plugin manager — never committed (test + smoke guard).
 - Load proven: `agy plugin list` registers it (`~/.gemini/config/import_manifest.json`), cli.log logs `Loaded hooks.json … 1 named hooks, 1 total handlers` when a session starts.
@@ -50,7 +50,7 @@ Plugin systems of these agents are young and change fast; re-run this whenever a
 - `grok plugin validate ./plugins/grok` reports name, version, and components (skills + hooks).
 
 ## opencode [pending npm publish]
-- `plugins/opencode/` is the npm package `@sipki-tech/scrooge-kit-opencode`: `tool.execute.before` mutates bash args in-process; the `config` hook registers headroom MCP only when the binary is present.
+- `plugins/opencode/` is the npm package `@sipki-tech/scrooge-kit-opencode`: `tool.execute.before` mutates bash args in-process; the `config` hook registers the headroom and serena MCP servers only when the respective binary is present.
 - Native install is OpenCode's own `opencode plugin @sipki-tech/scrooge-kit-opencode` (writes `opencode.json` itself; `-g` for global). Works once the package is published: `cd plugins/opencode && npm publish --access public`. The smoke test probes npm and exercises the real install when the package resolves; until then it validates the module in-process and reports PARTIAL.
 
 ## Shared source

@@ -38,9 +38,10 @@
 
 - **[rtk](https://github.com/rtk-ai/rtk)** — хук прозрачно переписывает `git status` → `rtk git status`; вывод попадает в контекст сжатым, падения на месте.
 - **[Headroom](https://github.com/headroomlabs-ai/headroom)** — обратимое сжатие блобов через MCP-инструменты (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
+- **[Serena](https://github.com/oraios/serena)** — symbol-level чтение/правка кода через LSP (40+ языков): агент читает символы и ссылки вместо целых файлов.
 - **Скилл scrooge-hygiene + rules** — выборочное чтение, никаких сырых логов, этикет обходов.
 
-Предусловие для экономии: `brew install rtk` (без бинаря хуки — тихий no-op) и опционально `pip install "headroom-ai[all]"`.
+Предусловие для экономии: `brew install rtk` (без бинаря хуки — тихий no-op); опционально `pip install "headroom-ai[all]"` и `uv tool install serena-agent`.
 
 ## Установка (нативно, по агентам)
 
@@ -48,8 +49,8 @@
 
 | Агент | Установка |
 |---|---|
-| **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` (+ `scrooge-headroom@scrooge-kit`, если установлен бинарь headroom) |
-| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
+| **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` (+ `scrooge-headroom@scrooge-kit` / `scrooge-serena@scrooge-kit`, если установлен соответствующий бинарь) |
+| **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` (+ `scrooge-headroom` / `scrooge-serena` тем же путём) |
 | **Grok Build** | `grok plugin install sipki-tech/scrooge-kit#plugins/grok` |
 | **Gemini CLI** | `gemini extensions install https://github.com/sipki-tech/scrooge-kit` (тянет Release-архив) |
 | **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` — никогда не давайте `agy plugin install` URL репозитория: agy bulk-установит каждую папку под `plugins/` |
@@ -81,6 +82,7 @@
 plugins/
   claude-code/           # .claude-plugin + PreToolUse-хук + скилл
   claude-code-headroom/  # MCP-only плагин (ставьте при наличии бинаря headroom)
+  claude-code-serena/    # MCP-only плагин: Serena LSP-навигация (ставьте при наличии бинаря serena)
   codex/                 # .codex-plugin + PreToolUse-хук + скилл
   gemini-cli/            # gemini-extension.json + BeforeTool-хук + GEMINI.md (релизится как tar.gz)
   antigravity/           # plugin.json + hooks.json (deny-подсказка) + mcp_config.json (disabled) + rules
