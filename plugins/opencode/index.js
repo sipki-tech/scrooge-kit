@@ -1,6 +1,6 @@
 // OpenCode plugin: in-process command rewriting + conditional MCP servers
-// (Headroom, Serena). Fail-open everywhere — a bug here must cost savings,
-// never a session.
+// (Headroom, codebase-memory). Fail-open everywhere — a bug here must cost
+// savings, never a session.
 import { execFileSync } from "node:child_process";
 import { rewriteCommand } from "./lib/policy.mjs";
 
@@ -44,12 +44,12 @@ export const ScroogeKit = async () => ({
           },
         };
       }
-      if (binaryAvailable("serena")) {
+      if (binaryAvailable("codebase-memory-mcp")) {
         config.mcp = {
           ...(config.mcp ?? {}),
-          serena: config.mcp?.serena ?? {
+          "codebase-memory": config.mcp?.["codebase-memory"] ?? {
             type: "local",
-            command: ["serena", "start-mcp-server", "--context", "ide-assistant"],
+            command: ["codebase-memory-mcp"],
             enabled: true,
           },
         };

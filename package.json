@@ -1,6 +1,6 @@
 {
   "name": "@sipki-tech/scrooge-kit",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Native token-saving plugins for terminal coding agents: rtk terminal-output compression, Headroom MCP blob compression, token-hygiene skill — Claude Code, Codex, Antigravity, Grok, OpenCode.",
   "license": "MIT",
@@ -16,7 +16,8 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "sync": "node scripts/sync.mjs",
-    "smoke": "node scripts/smoke-install.mjs"
+    "smoke": "node scripts/smoke-install.mjs",
+    "check:headless": "node scripts/headless-check.mjs"
   },
   "engines": {
     "node": ">=18"

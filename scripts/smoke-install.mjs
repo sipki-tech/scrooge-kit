@@ -164,7 +164,7 @@ function testClaude() {
   ];
   const list = run(["claude", "plugin", "list"], env);
   list.ok = list.ok && list.out.includes("scrooge-kit");
-  list.name = "claude plugin list → scrooge-kit present (bundles rtk hook + Headroom/Serena MCP)";
+  list.name = "claude plugin list → scrooge-kit present (bundles rtk hook + Headroom/codebase-memory MCP)";
   steps.push(list);
   steps.push(run(["claude", "plugin", "uninstall", "scrooge-kit@scrooge-kit", "--scope", "user"], env));
   rmSync(sb, { recursive: true, force: true });

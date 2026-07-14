@@ -38,16 +38,16 @@ big blobs / logs / files ──► [Headroom: MCP compress]      ──► LLM A
 
 - **[rtk](https://github.com/rtk-ai/rtk)** — routes `git status` → `rtk git status` so output enters the context compressed, failures intact. On hosts whose hooks can mutate a command (Claude Code, Codex, OpenCode) the rewrite is silent; on hosts that can only allow/deny (Antigravity, Grok) the hook denies the raw command and nudges the agent to re-run it through rtk.
 - **[Headroom](https://github.com/headroomlabs-ai/headroom)** — reversible blob compression via MCP tools (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
-- **[Serena](https://github.com/oraios/serena)** — symbol-level code retrieval/editing over LSP (40+ languages): the agent reads symbols and references instead of whole files.
+- **[codebase-memory](https://github.com/DeusData/codebase-memory-mcp)** — code-graph retrieval over MCP: it indexes the repo (158 languages via tree-sitter + hybrid LSP for 12), so the agent queries symbols, references and call-paths instead of reading whole files. Zero per-language setup; polyglot monorepos in a single index.
 - **scrooge-hygiene skill + rules** — selective reads, no raw logs, bypass etiquette.
 
-Prerequisite for the savings: `brew install rtk` (hooks are silent no-ops without it); optionally `pip install "headroom-ai[all]"` and `uv tool install serena-agent`.
+Prerequisite for the savings: `brew install rtk` (hooks are silent no-ops without it); optionally `pip install "headroom-ai[all]"` and `npm install -g codebase-memory-mcp`.
 
 ## Install (native, per agent)
 
 Every command below is exercised against the real CLI — see [docs/agents.md](docs/agents.md) for the verification matrix and `npm run smoke` for the sandboxed re-check.
 
-Every plugin bundles the Headroom + Serena MCP servers — they come **enabled**. If the `headroom` / `serena` binary isn't on PATH the host shows a one-line MCP connection error and everything else keeps working; install the binaries (below) to clear it.
+Every plugin bundles the Headroom + codebase-memory MCP servers — they come **enabled**. If the `headroom` / `codebase-memory-mcp` binary isn't on PATH the host shows a one-line MCP connection error and everything else keeps working; install the binaries (below) to clear it.
 
 | Agent | Install |
 |---|---|
@@ -81,11 +81,11 @@ Uninstall the same way: `/plugin uninstall`, `codex plugin remove scrooge-kit@sc
 .claude-plugin/marketplace.json   # Claude Code marketplace: scrooge-kit (Grok reads it too)
 .agents/plugins/marketplace.json  # Codex-native marketplace (same plugin, object source)
 plugins/
-  claude-code/           # .claude-plugin + PreToolUse hook + skill + .mcp.json (Headroom + Serena)
+  claude-code/           # .claude-plugin + PreToolUse hook + skill + .mcp.json (Headroom + codebase-memory)
   codex/                 # .codex-plugin + PreToolUse hook + skill
-  antigravity/           # plugin.json + hooks.json (deny-nudge) + mcp_config.json (Headroom + Serena) + rules
-  grok/                  # .claude-plugin manifest + hooks (deny-nudge) + skill + .mcp.json (Headroom + Serena)
-  opencode/              # npm package: in-process rewrite + conditional Headroom/Serena MCP
+  antigravity/           # plugin.json + hooks.json (deny-nudge) + mcp_config.json (Headroom + codebase-memory) + rules
+  grok/                  # .claude-plugin manifest + hooks (deny-nudge) + skill + .mcp.json (Headroom + codebase-memory)
+  opencode/              # npm package: in-process rewrite + conditional Headroom/codebase-memory MCP
 shared/                  # single source of truth: policy, rewriter, io, skill, rules
 scripts/sync.mjs         # distributes shared/ into plugins (copies are committed; test enforces sync)
 ```

@@ -2,13 +2,15 @@
 
 Confidence as of 2026-07-13: **[verified]** — exercised live against the real CLI on this date; **[best-effort]** — mirrors a documented pattern, fail-open if the host ignores it; **[pending]** — blocked on an external step, see the note.
 
-> **Revised 2026-07-14 (v0.4):** three design changes supersede parts of the live matrix below and need re-verification on the real CLIs: (1) Grok joins Antigravity on the **deny-nudge** dialect — its hook contract has no arg-mutation slot, so the old `updatedInput` mirror was silently dropped; (2) Headroom + Serena MCP are **bundled into each main plugin and ship enabled** (a missing binary is a visible connection error, per an explicit product decision) — the separate `scrooge-headroom` / `scrooge-serena` plugins are gone; (3) the **Gemini CLI** target was removed from the kit.
+> **Revised 2026-07-14 (v0.5):** the Serena MCP (symbol retrieval over per-language LSP) is replaced by **codebase-memory-mcp** — a single static binary that indexes 158 languages (tree-sitter + hybrid LSP for 12) with zero per-language setup and native polyglot/monorepo support. It removes Serena's single-language auto-detect and per-project `.serena/project.yml` friction. Install: `npm install -g codebase-memory-mcp`. Bundled MCP entry per host: `{"command":"codebase-memory-mcp"}`.
+>
+> **Revised 2026-07-14 (v0.4):** three design changes supersede parts of the live matrix below and need re-verification on the real CLIs: (1) Grok joins Antigravity on the **deny-nudge** dialect — its hook contract has no arg-mutation slot, so the old `updatedInput` mirror was silently dropped; (2) Headroom + codebase-memory MCP are **bundled into each main plugin and ship enabled** (a missing binary is a visible connection error, per an explicit product decision) — the separate `scrooge-headroom` / `scrooge-serena` plugins are gone; (3) the **Gemini CLI** target was removed from the kit.
 
 ## Verification matrix (live, 2026-07-13)
 
 | Agent | CLI | Install (proven) | Load proof | Uninstall (proven) | Verdict |
 |---|---|---|---|---|---|
-| claude-code | claude 2.1.197 | `claude plugin marketplace add …` → `claude plugin install scrooge-kit@scrooge-kit` | live session: `git status` rewritten to `rtk git status`; skill + bundled Headroom/Serena MCP visible | `claude plugin uninstall …` | ✅ native |
+| claude-code | claude 2.1.197 | `claude plugin marketplace add …` → `claude plugin install scrooge-kit@scrooge-kit` | live session: `git status` rewritten to `rtk git status`; skill + bundled Headroom/codebase-memory MCP visible | `claude plugin uninstall …` | ✅ native |
 | codex | codex 0.144.1 | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` (local + remote both exercised) | `codex plugin list` → installed, enabled, resolves `plugins/codex` via `.agents/plugins/marketplace.json` | `codex plugin remove scrooge-kit@scrooge-kit` | ✅ native |
 | antigravity | agy 1.1.1 | `agy plugin install ./scrooge-kit/plugins/antigravity` (local dir after clone) | cli.log: `Loaded hooks.json from ~/.gemini/config/plugins/scrooge-kit/hooks.json: 1 named hooks`; handler exercised from installed cwd | `agy plugin uninstall scrooge-kit` | ✅ native (no remote one-liner — see trap) |
 | grok | grok 0.2.93 | `grok plugin install sipki-tech/scrooge-kit#plugins/grok` (remote subdir + local path both exercised) | `grok plugin list` / `details` show scrooge-kit, skills + hooks components | `grok plugin uninstall scrooge-kit` | ✅ native (deny-nudge re-verify pending, see §grok) |
@@ -25,7 +27,7 @@ Plugin systems of these agents are young and change fast; re-run this whenever a
 
 ## claude-code [verified]
 - Native plugin `plugins/claude-code/` + marketplace at repo root. PreToolUse hook (matcher `Bash`) rewrites via `hookSpecificOutput.updatedInput`; script referenced through `${CLAUDE_PLUGIN_ROOT}`.
-- Headroom + Serena ship in the plugin's own `plugins/claude-code/.mcp.json` (auto-discovered on install), **enabled**. Claude Code cannot ship an MCP server disabled, so a missing binary surfaces as a one-line connection error — an accepted, documented trade for zero manual steps. Install the binaries to clear it: `headroom` via `pip install "headroom-ai[all]"`, `serena` via `uv tool install serena-agent`.
+- Headroom + codebase-memory ship in the plugin's own `plugins/claude-code/.mcp.json` (auto-discovered on install), **enabled**. Claude Code cannot ship an MCP server disabled, so a missing binary surfaces as a one-line connection error — an accepted, documented trade for zero manual steps. Install the binaries to clear it: `headroom` via `pip install "headroom-ai[all]"`, `codebase-memory-mcp` via `npm install -g codebase-memory-mcp`.
 
 ## codex [verified]
 - `plugins/codex/` with `.codex-plugin/plugin.json`; native PreToolUse hooks since ~v0.144, `PLUGIN_ROOT` env with a `CLAUDE_PLUGIN_ROOT` alias (we use the alias for one shared hooks format). Matcher covers `shell|local_shell|exec_command|Bash`.
@@ -34,7 +36,7 @@ Plugin systems of these agents are young and change fast; re-run this whenever a
 - Full cycle proven on 0.144.1: `codex plugin marketplace add` (local path and `owner/repo`), `codex plugin add scrooge-kit@scrooge-kit`, `list`, `remove`.
 
 ## antigravity [verified]
-- `plugins/antigravity/`: `plugin.json` (object `author`), root-level `hooks.json` with the named top-level block, `mcp_config.json` with headroom and serena **enabled** (agy auto-loads plugin `mcp_config.json` on install; no `disabled` flag needed — a missing binary is a visible connection error, per the v0.4 product decision), rules/, skills/, scripts/.
+- `plugins/antigravity/`: `plugin.json` (object `author`), root-level `hooks.json` with the named top-level block, `mcp_config.json` with headroom and codebase-memory **enabled** (agy auto-loads plugin `mcp_config.json` on install; no `disabled` flag needed — a missing binary is a visible connection error, per the v0.4 product decision), rules/, skills/, scripts/.
 - **Hook command uses a hooks.json-relative path** (`node "scripts/rtk-rewriter.mjs" antigravity`): agy 1.1.1 expands `${PLUGIN_ROOT}` to an empty string, and the handler cwd is the hooks.json directory. A test guards against reintroducing the variable.
 - Install: `agy plugin install ./scrooge-kit/plugins/antigravity` (local path after clone). **Bulk trap:** pointing `agy plugin install` at the repo URL installs every directory under `plugins/` — all the agent payloads — so there is deliberately no remote one-liner. No `agy plugin update` either: update = pull + re-install. `installed_version.json` is written by the plugin manager — never committed (test + smoke guard).
 - Load proven: `agy plugin list` registers it (`~/.gemini/config/import_manifest.json`), cli.log logs `Loaded hooks.json … 1 named hooks, 1 total handlers` when a session starts.
@@ -45,10 +47,10 @@ Plugin systems of these agents are young and change fast; re-run this whenever a
 - Primary install (proven): `grok plugin install sipki-tech/scrooge-kit#plugins/grok` — subdir syntax straight from the repo. `grok plugin marketplace add sipki-tech/scrooge-kit` also works and reads the Claude marketplace, but resolves `plugins/claude-code` (Claude dialect, `${CLAUDE_PLUGIN_ROOT}`) — the subdir install of the dedicated plugin is preferred.
 - `grok plugin validate ./plugins/grok` reports name, version, and components (skills + hooks).
 - **Deny-nudge dialect (v0.4):** Grok's PreToolUse contract only allows/denies/asks — there is no arg-mutation slot (`~/.grok/docs/user-guide/10-hooks.md`), so the old `updatedInput` mirror was silently dropped and rtk was never enforced. Grok now uses the same deny-nudge as Antigravity. Grok is fail-open on `{}`, so the no-op still returns an explicit allow for uniformity. Grok's stdin uses **camelCase** `toolInput` (not `tool_input`) and aliases `Bash → run_terminal_command`; `commandLineOf` probes both shapes. Live re-verification of the deny-nudge on grok 0.2.93 is pending.
-- Headroom + Serena ship in `plugins/grok/.mcp.json` (Grok auto-discovers `.mcp.json`, `enabled` by default), same enabled-with-visible-error model as the other hosts.
+- Headroom + codebase-memory ship in `plugins/grok/.mcp.json` (Grok auto-discovers `.mcp.json`, `enabled` by default), same enabled-with-visible-error model as the other hosts.
 
 ## opencode [pending npm publish]
-- `plugins/opencode/` is the npm package `@sipki-tech/scrooge-kit-opencode`: `tool.execute.before` mutates bash args in-process; the `config` hook registers the headroom and serena MCP servers only when the respective binary is present.
+- `plugins/opencode/` is the npm package `@sipki-tech/scrooge-kit-opencode`: `tool.execute.before` mutates bash args in-process; the `config` hook registers the headroom and codebase-memory MCP servers only when the respective binary is present.
 - Native install is OpenCode's own `opencode plugin @sipki-tech/scrooge-kit-opencode` (writes `opencode.json` itself; `-g` for global). Works once the package is published: `cd plugins/opencode && npm publish --access public`. The smoke test probes npm and exercises the real install when the package resolves; until then it validates the module in-process and reports PARTIAL.
 
 ## Shared source

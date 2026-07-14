@@ -1,7 +1,7 @@
 {
   "name": "scrooge-kit",
   "displayName": "Scrooge Kit",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Token-saving kit: transparently routes terminal commands through rtk (60-90% output compression) and teaches token hygiene. Bypass with SCROOGE_RAW=1; needs the rtk binary (brew install rtk) to take effect.",
   "author": {
     "name": "sipki-tech",

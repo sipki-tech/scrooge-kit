@@ -28,38 +28,38 @@ rtk запускает настоящую команду, срезает шум
 
 1. **rtk** (терминал) — хук выше; прозрачный там, где хост умеет переписывать input, совещательный в остальных.
 2. **Headroom** (блобы) — MCP-инструменты `headroom_compress` / `headroom_retrieve` / `headroom_stats`; скилл `scrooge-hygiene` учит агента ими пользоваться. Обратимо — оригиналы кэшируются.
-3. **Serena** (навигация по коду) — symbol-level чтение/правка через LSP (40+ языков): агент читает символ и его ссылки вместо целых файлов.
+3. **codebase-memory** (навигация по коду) — граф-навигация через MCP: проиндексировать репозиторий один раз, затем запрашивать символы, референсы и call-цепочки (158 языков, tree-sitter + hybrid LSP) вместо чтения целых файлов. Ноль настройки на язык, монорепо тоже.
 4. **Скилл + rules** — выборочное чтение, никаких сырых логов, этикет обходов.
 
-Каждый слой мягко деградирует: нет бинаря rtk → хуки тихо бездействуют; нет headroom/serena → соответствующий MCP-плагин просто не ставится (или идёт выключенным).
+Каждый слой мягко деградирует: нет бинаря rtk → хуки тихо бездействуют; нет headroom/codebase-memory-mcp → соответствующий MCP-плагин просто не ставится (или идёт выключенным).
 
 ## 2. Предусловия
 
 ```bash
 brew install rtk                     # или: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
 pip install "headroom-ai[all]"       # опционально, Python 3.10+; или uv tool install / pipx install
-uv tool install serena-agent         # опционально: Serena LSP-навигация (`serena` на PATH)
+npm install -g codebase-memory-mcp         # опционально: codebase-memory граф-навигация (`codebase-memory-mcp` на PATH)
 ```
 
 ## 3. Установка по агентам
 
 Каждая команда ниже прогнана вживую против реального CLI (матрица проверок — в [agents.md](agents.md)); перепроверить на своей машине можно в любой момент: `npm run smoke`.
 
-Каждый плагин несёт MCP-сервера Headroom + Serena, **включёнными**. Если бинаря нет на PATH — хост покажет однострочную ошибку подключения MCP, а всё остальное продолжит работать; поставьте бинари (шаг 2), чтобы её убрать.
+Каждый плагин несёт MCP-сервера Headroom + codebase-memory, **включёнными**. Если бинаря нет на PATH — хост покажет однострочную ошибку подключения MCP, а всё остальное продолжит работать; поставьте бинари (шаг 2), чтобы её убрать.
 
 ### Claude Code
 ```
 /plugin marketplace add sipki-tech/scrooge-kit
 /plugin install scrooge-kit@scrooge-kit
 ```
-Неинтерактивно: `claude plugin install scrooge-kit@scrooge-kit --scope user`. Headroom + Serena идут внутри `.mcp.json` самого плагина — отдельная установка не нужна.
+Неинтерактивно: `claude plugin install scrooge-kit@scrooge-kit --scope user`. Headroom + codebase-memory идут внутри `.mcp.json` самого плагина — отдельная установка не нужна.
 
 ### Codex CLI (≥0.144)
 ```bash
 codex plugin marketplace add sipki-tech/scrooge-kit
 codex plugin add scrooge-kit@scrooge-kit
 ```
-Codex резолвит нативный `.agents/plugins/marketplace.json` репозитория (выделенный `plugins/codex/` с манифестом `.codex-plugin`); старые снапшоты падают назад на legacy `.claude-plugin/marketplace.json`. Удаление: `codex plugin remove scrooge-kit@scrooge-kit`. (MCP для Codex пока не встроен — добавьте серверы `headroom` / `serena` в его собственный MCP-конфиг вручную, когда бинари заработают.)
+Codex резолвит нативный `.agents/plugins/marketplace.json` репозитория (выделенный `plugins/codex/` с манифестом `.codex-plugin`); старые снапшоты падают назад на legacy `.claude-plugin/marketplace.json`. Удаление: `codex plugin remove scrooge-kit@scrooge-kit`. (MCP для Codex пока не встроен — добавьте серверы `headroom` / `codebase-memory-mcp` в его собственный MCP-конфиг вручную, когда бинари заработают.)
 
 ### Grok Build
 ```bash
@@ -72,13 +72,13 @@ grok plugin install sipki-tech/scrooge-kit#plugins/grok
 git clone https://github.com/sipki-tech/scrooge-kit
 agy plugin install ./scrooge-kit/plugins/antigravity
 ```
-**Никогда** не запускайте `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-установит каждую папку под `plugins/` репозитория, то есть все агентские payload'ы. Команды `agy plugin update` нет; для обновления — pull и переустановка. Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom и Serena прописаны и **включены** в `mcp_config.json`.
+**Никогда** не запускайте `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-установит каждую папку под `plugins/` репозитория, то есть все агентские payload'ы. Команды `agy plugin update` нет; для обновления — pull и переустановка. Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom и codebase-memory прописаны и **включены** в `mcp_config.json`.
 
 ### OpenCode
 ```bash
 opencode plugin @sipki-tech/scrooge-kit-opencode      # или -g для глобального конфига
 ```
-Штатная команда OpenCode сама добавит запись в `opencode.json`; ручное добавление `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` тоже работает. Автоматически ставится из npm на старте. Плагин переписывает in-process (`tool.execute.before`) и регистрирует MCP-серверы Headroom и Serena **только при наличии соответствующего бинаря** (проверка на старте через `config`-хук).
+Штатная команда OpenCode сама добавит запись в `opencode.json`; ручное добавление `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` тоже работает. Автоматически ставится из npm на старте. Плагин переписывает in-process (`tool.execute.before`) и регистрирует MCP-серверы Headroom и codebase-memory **только при наличии соответствующего бинаря** (проверка на старте через `config`-хук).
 
 ## 4. Повседневность: перезапись и обходы
 
@@ -112,7 +112,7 @@ SCROOGE_RTK=off            # переменная окружения: отклю
 | Симптом | Причина / решение |
 | --- | --- |
 | Команды не переписываются | rtk не установлен (`which rtk`), или сессия стартовала до плагина — перезапустите агента. |
-| headroom / serena MCP «Failed to connect» | Нет бинаря — `pip install "headroom-ai[all]"` / `uv tool install serena-agent` (сервера идут включёнными; до установки ошибка безвредна). Либо запись не `headroom mcp serve`. |
+| headroom / codebase-memory-mcp MCP «Failed to connect» | Нет бинаря — `pip install "headroom-ai[all]"` / `npm install -g codebase-memory-mcp` (сервера идут включёнными; до установки ошибка безвредна). Либо запись не `headroom mcp serve`. |
 | Нужен сырой вывод один раз | `SCROOGE_RAW=1 <команда>`. На сессию: `SCROOGE_RTK=off`. |
 | Подозрение на хук | Он fail-open (всегда exit 0); `SCROOGE_RTK=off` нейтрализует без удаления. |
 | Убрать всё | Удаление через менеджер плагинов каждого агента (см. §3) — больше ничего не трогалось. |

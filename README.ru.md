@@ -38,16 +38,16 @@
 
 - **[rtk](https://github.com/rtk-ai/rtk)** — направляет `git status` → `rtk git status`, вывод попадает в контекст сжатым, падения на месте. Там, где хук хоста умеет мутировать команду (Claude Code, Codex, OpenCode) — переписывает тихо; там, где хост умеет только allow/deny (Antigravity, Grok) — блокирует сырую команду и подсказывает агенту перезапустить её через rtk.
 - **[Headroom](https://github.com/headroomlabs-ai/headroom)** — обратимое сжатие блобов через MCP-инструменты (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
-- **[Serena](https://github.com/oraios/serena)** — symbol-level чтение/правка кода через LSP (40+ языков): агент читает символы и ссылки вместо целых файлов.
+- **[codebase-memory](https://github.com/DeusData/codebase-memory-mcp)** — граф-навигация по коду через MCP: индексирует репозиторий (158 языков через tree-sitter + hybrid LSP для 12), агент запрашивает символы, референсы и call-цепочки вместо чтения целых файлов. Ноль настройки на язык; polyglot-монорепо одним индексом.
 - **Скилл scrooge-hygiene + rules** — выборочное чтение, никаких сырых логов, этикет обходов.
 
-Предусловие для экономии: `brew install rtk` (без бинаря хуки — тихий no-op); опционально `pip install "headroom-ai[all]"` и `uv tool install serena-agent`.
+Предусловие для экономии: `brew install rtk` (без бинаря хуки — тихий no-op); опционально `pip install "headroom-ai[all]"` и `npm install -g codebase-memory-mcp`.
 
 ## Установка (нативно, по агентам)
 
 Каждая команда ниже прогнана против реального CLI — матрица проверок в [docs/agents.md](docs/agents.md), песочный перепрогон — `npm run smoke`.
 
-Каждый плагин несёт MCP-сервера Headroom + Serena — они идут **включёнными**. Если бинаря `headroom` / `serena` нет на PATH, хост покажет однострочную ошибку подключения MCP, а всё остальное продолжит работать; поставьте бинари (ниже), чтобы её убрать.
+Каждый плагин несёт MCP-сервера Headroom + codebase-memory — они идут **включёнными**. Если бинаря `headroom` / `codebase-memory-mcp` нет на PATH, хост покажет однострочную ошибку подключения MCP, а всё остальное продолжит работать; поставьте бинари (ниже), чтобы её убрать.
 
 | Агент | Установка |
 |---|---|
@@ -81,11 +81,11 @@
 .claude-plugin/marketplace.json   # Claude Code-маркетплейс: scrooge-kit (его читает и Grok)
 .agents/plugins/marketplace.json  # Codex-нативный маркетплейс (тот же плагин, object-source)
 plugins/
-  claude-code/           # .claude-plugin + PreToolUse-хук + скилл + .mcp.json (Headroom + Serena)
+  claude-code/           # .claude-plugin + PreToolUse-хук + скилл + .mcp.json (Headroom + codebase-memory)
   codex/                 # .codex-plugin + PreToolUse-хук + скилл
-  antigravity/           # plugin.json + hooks.json (deny-подсказка) + mcp_config.json (Headroom + Serena) + rules
-  grok/                  # .claude-plugin манифест + хуки (deny-подсказка) + скилл + .mcp.json (Headroom + Serena)
-  opencode/              # npm-пакет: in-process перезапись + условный Headroom/Serena MCP
+  antigravity/           # plugin.json + hooks.json (deny-подсказка) + mcp_config.json (Headroom + codebase-memory) + rules
+  grok/                  # .claude-plugin манифест + хуки (deny-подсказка) + скилл + .mcp.json (Headroom + codebase-memory)
+  opencode/              # npm-пакет: in-process перезапись + условный Headroom/codebase-memory MCP
 shared/                  # единственный источник правды: policy, rewriter, io, скилл, rules
 scripts/sync.mjs         # разливает shared/ по плагинам (копии коммитятся; тест следит за синхронностью)
 ```

@@ -1,8 +1,8 @@
 {
   "name": "scrooge-kit",
   "displayName": "Scrooge Kit",
-  "version": "0.4.0",
-  "description": "Token-saving kit: routes terminal commands through rtk (60-90% output compression), teaches token hygiene, and bundles the Headroom & Serena MCP servers. Bypass with SCROOGE_RAW=1; needs the rtk binary (brew install rtk) to take effect, and the headroom / serena binaries on PATH for the MCP servers.",
+  "version": "0.5.0",
+  "description": "Token-saving kit: routes terminal commands through rtk (60-90% output compression), teaches token hygiene, and bundles the Headroom & codebase-memory MCP servers. Bypass with SCROOGE_RAW=1; needs the rtk binary (brew install rtk) to take effect, and the headroom / codebase-memory-mcp binaries on PATH for the MCP servers.",
   "author": {
     "name": "sipki-tech",
     "url": "https://github.com/sipki-tech"

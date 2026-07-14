@@ -4,15 +4,15 @@
     "name": "sipki-tech",
     "url": "https://github.com/sipki-tech"
   },
-  "description": "Token-saving plugins: rtk terminal-output compression, Headroom MCP blob compression, Serena symbol-level retrieval, token-hygiene skill.",
+  "description": "Token-saving plugins: rtk terminal-output compression, Headroom MCP blob compression, codebase-memory code-graph retrieval, token-hygiene skill.",
   "metadata": {
-    "version": "0.4.0"
+    "version": "0.5.0"
   },
   "plugins": [
     {
       "name": "scrooge-kit",
       "source": "./plugins/claude-code",
-      "description": "Routes terminal commands through rtk (60-90% output compression) + token-hygiene skill + bundled Headroom & Serena MCP servers (require the headroom / serena binaries on PATH).",
+      "description": "Routes terminal commands through rtk (60-90% output compression) + token-hygiene skill + bundled Headroom & codebase-memory MCP servers (require the headroom / codebase-memory-mcp binaries on PATH).",
       "category": "productivity",
       "tags": ["tokens", "cost", "rtk", "compression", "mcp"]
     }

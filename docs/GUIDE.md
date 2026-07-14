@@ -28,38 +28,38 @@ Four layers:
 
 1. **rtk** (terminal) — the hook above; transparent where the host supports input rewriting, advisory elsewhere.
 2. **Headroom** (blobs) — MCP tools `headroom_compress` / `headroom_retrieve` / `headroom_stats`; the `scrooge-hygiene` skill teaches the agent to use them. Reversible — originals are cached.
-3. **Serena** (code navigation) — symbol-level retrieval and editing over LSP (40+ languages): the agent reads a symbol or its references instead of whole files.
+3. **codebase-memory** (code navigation) — code-graph retrieval over MCP: index the repo once, then query symbols, references and call-paths (158 languages, tree-sitter + hybrid LSP) instead of reading whole files. Zero per-language setup, monorepos included.
 4. **Skill + rules** — selective reads, no raw logs, bypass etiquette.
 
-Every layer degrades gracefully: no rtk binary → hooks are silent no-ops; no headroom/serena binary → the corresponding MCP plugin simply isn't installed (or ships disabled).
+Every layer degrades gracefully: no rtk binary → hooks are silent no-ops; no headroom/codebase-memory-mcp binary → the corresponding MCP plugin simply isn't installed (or ships disabled).
 
 ## 2. Prerequisites
 
 ```bash
 brew install rtk                     # or: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
 pip install "headroom-ai[all]"       # optional, Python 3.10+; or uv tool install / pipx install
-uv tool install serena-agent         # optional: Serena LSP retrieval (`serena` on PATH)
+npm install -g codebase-memory-mcp         # optional: codebase-memory graph retrieval (`codebase-memory-mcp` on PATH)
 ```
 
 ## 3. Install per agent
 
 Every command below is exercised live against the real CLI (see the verification matrix in [agents.md](agents.md)); re-check on your machine anytime with `npm run smoke`.
 
-Every plugin bundles the Headroom + Serena MCP servers, **enabled**. If a binary isn't on PATH the host shows a one-line MCP connection error and everything else keeps working — install the binaries (step 2) to clear it.
+Every plugin bundles the Headroom + codebase-memory MCP servers, **enabled**. If a binary isn't on PATH the host shows a one-line MCP connection error and everything else keeps working — install the binaries (step 2) to clear it.
 
 ### Claude Code
 ```
 /plugin marketplace add sipki-tech/scrooge-kit
 /plugin install scrooge-kit@scrooge-kit
 ```
-Non-interactive: `claude plugin install scrooge-kit@scrooge-kit --scope user`. Headroom + Serena ship inside the plugin's `.mcp.json` — no separate install.
+Non-interactive: `claude plugin install scrooge-kit@scrooge-kit --scope user`. Headroom + codebase-memory ship inside the plugin's `.mcp.json` — no separate install.
 
 ### Codex CLI (≥0.144)
 ```bash
 codex plugin marketplace add sipki-tech/scrooge-kit
 codex plugin add scrooge-kit@scrooge-kit
 ```
-Codex resolves the repo's native `.agents/plugins/marketplace.json` (dedicated `plugins/codex/` with `.codex-plugin` manifest); older snapshots fall back to the legacy `.claude-plugin/marketplace.json`. Uninstall: `codex plugin remove scrooge-kit@scrooge-kit`. (MCP isn't bundled for Codex yet — add the `headroom` / `serena` servers to Codex's own MCP config manually once the binaries work.)
+Codex resolves the repo's native `.agents/plugins/marketplace.json` (dedicated `plugins/codex/` with `.codex-plugin` manifest); older snapshots fall back to the legacy `.claude-plugin/marketplace.json`. Uninstall: `codex plugin remove scrooge-kit@scrooge-kit`. (MCP isn't bundled for Codex yet — add the `headroom` / `codebase-memory-mcp` servers to Codex's own MCP config manually once the binaries work.)
 
 ### Grok Build
 ```bash
@@ -72,13 +72,13 @@ Installs the dedicated Grok plugin straight from the repo subdirectory. `grok pl
 git clone https://github.com/sipki-tech/scrooge-kit
 agy plugin install ./scrooge-kit/plugins/antigravity
 ```
-**Never** run `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-installs every directory under a repo's `plugins/`, i.e. all the agent payloads. There is no `agy plugin update`; to update, pull and re-install. The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom and Serena are pre-registered and **enabled** in `mcp_config.json`.
+**Never** run `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-installs every directory under a repo's `plugins/`, i.e. all the agent payloads. There is no `agy plugin update`; to update, pull and re-install. The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom and codebase-memory are pre-registered and **enabled** in `mcp_config.json`.
 
 ### OpenCode
 ```bash
 opencode plugin @sipki-tech/scrooge-kit-opencode      # or -g for the global config
 ```
-OpenCode's own plugin command adds the entry to `opencode.json` for you; adding `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` by hand works too. Auto-installed from npm at startup. The plugin rewrites in-process (`tool.execute.before`) and registers the Headroom and Serena MCP servers **only when the respective binary is present** (checked at startup via the `config` hook).
+OpenCode's own plugin command adds the entry to `opencode.json` for you; adding `{ "plugin": ["@sipki-tech/scrooge-kit-opencode"] }` by hand works too. Auto-installed from npm at startup. The plugin rewrites in-process (`tool.execute.before`) and registers the Headroom and codebase-memory MCP servers **only when the respective binary is present** (checked at startup via the `config` hook).
 
 ## 4. Day-to-day: the rewrite and its bypasses
 
@@ -112,7 +112,7 @@ When the agent needs a huge log or file, the skill tells it to call `headroom_co
 | Symptom | Cause / fix |
 | --- | --- |
 | Commands aren't rewritten | rtk not installed (`which rtk`), or the session started before the plugin — restart the agent. |
-| headroom / serena MCP "Failed to connect" | Binary missing — `pip install "headroom-ai[all]"` / `uv tool install serena-agent` (the servers ship enabled; the error is harmless until then). Or the entry isn't `headroom mcp serve`. |
+| headroom / codebase-memory-mcp MCP "Failed to connect" | Binary missing — `pip install "headroom-ai[all]"` / `npm install -g codebase-memory-mcp` (the servers ship enabled; the error is harmless until then). Or the entry isn't `headroom mcp serve`. |
 | Need raw output once | `SCROOGE_RAW=1 <cmd>`. Session-wide: `SCROOGE_RTK=off`. |
 | Suspect the hook | It's fail-open (exit 0 always); `SCROOGE_RTK=off` neutralizes it without uninstalling. |
 | Remove everything | Uninstall via each agent's plugin manager (see §3) — nothing else was touched. |

@@ -42,17 +42,16 @@ test("claude-code plugin: manifest, hook, script, skill", () => {
   assert.ok(existsSync(join(ROOT, "plugins/claude-code/skills/scrooge-hygiene/SKILL.md")));
 });
 
-// MCP (Headroom + Serena) is bundled into the main plugin for hosts that
-// auto-discover an .mcp.json. Both servers ship enabled — a missing binary is
-// a documented, visible connection error, not a shipped-disabled workaround.
-test("claude-code and grok bundle the Headroom + Serena MCP servers", () => {
+// MCP (Headroom + codebase-memory) is bundled into the main plugin for hosts
+// that auto-discover an .mcp.json. Both servers ship enabled — a missing binary
+// is a documented, visible connection error, not a shipped-disabled workaround.
+test("claude-code and grok bundle the Headroom + codebase-memory MCP servers", () => {
   for (const p of ["plugins/claude-code/.mcp.json", "plugins/grok/.mcp.json"]) {
     const mcp = json(p).mcpServers;
     assert.deepEqual(mcp.headroom.args, ["mcp", "serve"], `${p}: headroom`);
-    assert.equal(mcp.serena.command, "serena", `${p}: serena`);
-    assert.deepEqual(mcp.serena.args, ["start-mcp-server", "--context", "ide-assistant"], `${p}: serena args`);
+    assert.equal(mcp["codebase-memory"].command, "codebase-memory-mcp", `${p}: codebase-memory`);
     assert.ok(mcp.headroom.disabled === undefined, `${p}: headroom must ship enabled`);
-    assert.ok(mcp.serena.disabled === undefined, `${p}: serena must ship enabled`);
+    assert.ok(mcp["codebase-memory"].disabled === undefined, `${p}: codebase-memory must ship enabled`);
   }
 });
 
@@ -78,7 +77,7 @@ test("antigravity plugin keeps its loader traps and ships MCP enabled", () => {
   assert.ok(!hookCmd.includes("${PLUGIN_ROOT}"), "agy 1.1.1 expands ${PLUGIN_ROOT} to empty — use hooks.json-relative paths");
   const mcp = json("plugins/antigravity/mcp_config.json").mcpServers;
   assert.ok(mcp.headroom.disabled === undefined, "agy MCP auto-enables — no disabled flag");
-  assert.ok(mcp.serena.disabled === undefined, "agy MCP auto-enables — no disabled flag");
+  assert.ok(mcp["codebase-memory"].disabled === undefined, "agy MCP auto-enables — no disabled flag");
   assert.ok(!existsSync(join(ROOT, "plugins/antigravity/installed_version.json")), "never commit installed_version.json");
 });
 
