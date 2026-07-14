@@ -207,26 +207,51 @@ function agentArgv(agent, dir, prompt) {
 
 function runAgent(agent, dir, prompt) {
   const argv = agentArgv(agent, dir, prompt);
-  const res = spawnSync(argv[0], argv.slice(1), { cwd: dir, encoding: "utf8", timeout: 6 * 60_000 });
+  // Isolate codebase-memory's cache per agent: agy and grok each spin up their own
+  // MCP server, and without this they share the default cache dir — a race that
+  // intermittently crashed agy's index_repository while grok indexed the same
+  // fixture cleanly. A fixture-local cache dir removes the shared state.
+  const env = { ...process.env, CBM_CACHE_DIR: join(dir, ".cbm-cache") };
+  const res = spawnSync(argv[0], argv.slice(1), { cwd: dir, env, encoding: "utf8", timeout: 6 * 60_000 });
   return { out: `${res.stdout ?? ""}\n${res.stderr ?? ""}`, timedOut: res.error?.code === "ETIMEDOUT", err: res.error };
 }
 
-// Best-effort markers, lenient — the exact `agy -p` / `grok -p` transcript format
-// is calibrated on first live run. A code-nav failure signature wins over a bare
-// call-site mention so an empty-references miss can't false-green.
+// Best-effort markers over agent prose — ADVISORY only. Prose is unreliable
+// (agents both under- and over-claim), so these hint; the deterministic proof is
+// Layer A. Tightened after the first live runs to kill two miscalibrations:
+//   • false-green: an agent explaining a MISSING Headroom binary ("headroom … not
+//     installed") matched the old `/headroom/ && /stats/` marker. Now a roundtrip
+//     requires a real content hash + compress/retrieve verbs AND no "unavailable".
+//   • false-negative: grok writing "FAIL не отмечен" (nav PASSED) tripped the old
+//     `\bFAIL\b` nav-failure signature. Now failure keys on real crash/empty signals.
 function markers(out) {
-  const mentionsNav = /codebase-memory|trace_path|search_graph|index_repository|референс|reference/i.test(out);
-  const navFail = mentionsNav && /(СБОЙ|\bFAIL\b|пуст|empty|\[\]|not found|нет референс)/i.test(out);
-  const bothCallsites = /main\.go/i.test(out) && /index\.mjs/i.test(out);
+  const headroomAvail = /headroom/i.test(out) &&
+    !/headroom[^\n]{0,40}(недоступ|not available|не установлен|not installed)/i.test(out);
+  const headroomHash = /\b[0-9a-f]{16,}\b/i.test(out);
+  const headroomVerbs = /(retriev|восстанов|compress|сжал|распак|stats)/i.test(out);
+  const navResolved =
+    /main\.go/i.test(out) && /index\.mjs/i.test(out) &&
+    /(PASS|resolved|разрешил|референс|caller|inbound)/i.test(out);
+  const navFail =
+    /(index_repository|trace_path|search_graph)/i.test(out) &&
+    /(worker crashed|exit_nonzero|not indexed|project not found|empty references|пуст[ыо][^\n]{0,20}референс|нет референс)/i.test(out);
   return {
     rtkDenyNudge:
       /deny-nudge/i.test(out) || /rtk git status/i.test(out) || /\[scrooge-kit\]/i.test(out) ||
       (/(заблокир|blocked)/i.test(out) && /rtk/i.test(out)),
-    headroomRoundtrip: /headroom/i.test(out) && /(hash|хеш|retriev|восстанов|compress|stats)/i.test(out),
+    headroomRoundtrip: headroomAvail && headroomHash && headroomVerbs,
     navFail,
-    navOk: !navFail && bothCallsites,
+    navOk: !navFail && navResolved,
   };
 }
+
+// Per-host rtk expectation. grok does NOT execute plugin PreToolUse hooks in
+// headless (`grok -p`) — proven upstream limitation (our hook format matches
+// grok's docs and a minimal control plugin also failed to fire), so rtk cannot
+// deny-nudge under the harness there. Reported as a note, never a pass/fail.
+const RTK_KNOWN_LIMITATION = {
+  grok: "grok does not run plugin PreToolUse hooks in headless (-p) — upstream; rtk deny-nudge can't fire here (works interactively / in agy).",
+};
 
 function layerB() {
   log("\n── Layer B — agent-driven headless (best-effort, spends tokens) ──");
@@ -248,7 +273,11 @@ function layerB() {
       if (err && !timedOut) soft(false, `${agent}: invocation error`, String(err.message || err.code));
       if (timedOut) soft(false, `${agent}: timed out (6m)`);
       const m = markers(out);
-      soft(m.rtkDenyNudge, `${agent}: rtk deny-nudge observed`);
+      if (RTK_KNOWN_LIMITATION[agent]) {
+        log(`   note ${agent}: rtk deny-nudge not expected — ${RTK_KNOWN_LIMITATION[agent]}`);
+      } else {
+        soft(m.rtkDenyNudge, `${agent}: rtk deny-nudge observed`);
+      }
       soft(m.headroomRoundtrip, `${agent}: Headroom roundtrip observed`);
       if (m.navFail) soft(false, `${agent}: code-nav reported empty/failed references`);
       else soft(m.navOk, `${agent}: codebase-memory resolved refs (main.go + index.mjs)`);
