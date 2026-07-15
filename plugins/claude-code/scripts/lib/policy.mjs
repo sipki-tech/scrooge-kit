@@ -3,30 +3,53 @@
 // the payload directory is copied verbatim to ~/.scrooge-kit, so this file
 // must stay self-contained (node builtins only).
 
+// Mirrors the dev tools rtk actually proxies (from `rtk --help`, rtk 0.43.0).
+// rtk passes through anything it can't compress, so an over-broad entry never
+// breaks a command — but it wastes a turn on decision hosts, so we list only
+// what rtk genuinely compresses. Deliberately excluded:
+//   • yarn, bun, make, gradle, bundle, eslint — NOT proxied by rtk 0.43.0
+//     (passthrough only; `eslint` lives under `rtk lint`, `gradle` under gradlew).
+//   • curl, playwright — rtk's own docs recommend excluding these
+//     (compression interferes); they ship in rtk's default exclude examples.
+//   • ls, tree, find, grep, rg, cat — the agent's native search/read territory
+//     (host tools like Grep/Glob bypass the hook anyway); `rtk ls -R` can also
+//     grow output, so we don't auto-route file/search utilities.
 export const PREFIXES = [
-  "git",
-  "gh",
-  "npm",
-  "pnpm",
-  "yarn",
-  "bun",
-  "cargo",
-  "go",
-  "pytest",
-  "jest",
-  "vitest",
-  "tsc",
-  "eslint",
-  "ruff",
-  "mypy",
-  "docker",
-  "kubectl",
-  "make",
-  "gradle",
-  "mvn",
-  "pip",
-  "bundle",
+  // version control / forge
+  "git", "gh", "glab",
+  // package managers
+  "npm", "npx", "pnpm", "pip",
+  // compiled-language build/test
+  "cargo", "go", "golangci-lint", "gradlew", "mvn", "dotnet",
+  // test / lint / typecheck / build
+  "pytest", "jest", "vitest", "rspec", "rake", "rubocop", "ruff", "mypy",
+  "tsc", "next", "prisma", "prettier",
+  // containers / cloud / db / net
+  "docker", "kubectl", "oc", "aws", "psql", "wget",
 ];
+
+// `git` is multi-command: route only the subcommands rtk actually compresses
+// (the `rtk git` subcommand set, rtk 0.43.0). rtk condenses even the mutating
+// ones (`push`→"ok <branch>", `commit`→"ok <hash>"). Everything not listed —
+// notably `clone`, plus checkout/switch/merge/rebase/reset/init/config/remote/
+// tag/… — is left alone (rtk has no handler; nudging it only wastes a turn).
+const GIT_COMPRESSIBLE = new Set([
+  "status", "diff", "log", "show", "add", "commit",
+  "push", "pull", "branch", "fetch", "stash", "worktree",
+]);
+
+// The subcommand of a `git …` invocation, skipping pre-command options:
+// `-C <path>` and `-c <name>=<val>` take an argument; `--no-pager`, `--git-dir=…`
+// and other `-*` flags are single tokens.
+function gitSubcommand(tokensAfterGit) {
+  for (let i = 0; i < tokensAfterGit.length; i++) {
+    const t = tokensAfterGit[i];
+    if (t === "-C" || t === "-c") { i++; continue; }
+    if (t.startsWith("-")) continue;
+    return t;
+  }
+  return "";
+}
 
 // Documented bypass: SCROOGE_RAW=1 <cmd> runs unfiltered. KIT_RAW=1 is
 // honored too so antigravity-kit muscle memory keeps working.
@@ -48,8 +71,12 @@ export function rewriteCommand(cmd, env = {}) {
 
   // Env-assignment prefixes don't change the command: NODE_ENV=test npm ...
   const [, envPart, rest] = trimmed.match(ENV_ASSIGNMENTS_RE);
-  const first = rest.split(/\s+/, 1)[0] ?? "";
+  const tokens = rest.split(/\s+/);
+  const first = tokens[0] ?? "";
   if (!PREFIXES.includes(first)) return null;
+
+  // git only benefits on its verbose read-only subcommands; skip clone/push/etc.
+  if (first === "git" && !GIT_COMPRESSIBLE.has(gitSubcommand(tokens.slice(1)))) return null;
 
   return `${envPart}rtk ${rest}`;
 }

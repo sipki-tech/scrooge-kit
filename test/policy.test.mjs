@@ -10,9 +10,38 @@ test("rewrites plain dev commands", () => {
 
 test("preserves quoting and inner spacing", () => {
   assert.equal(
-    rewriteCommand('git commit -m "two  words"'),
-    'rtk git commit -m "two  words"',
+    rewriteCommand('git log --grep "two  words"'),
+    'rtk git log --grep "two  words"',
   );
+});
+
+test("git: only the subcommands rtk handles are rewritten", () => {
+  // in `rtk git` → rewritten (rtk condenses even push/commit)
+  for (const c of [
+    "git status", "git diff HEAD~1", "git log --oneline", "git show",
+    "git add .", "git commit -m x", "git push", "git pull",
+    "git branch", "git fetch", "git stash", "git worktree list",
+  ])
+    assert.equal(rewriteCommand(c), `rtk ${c}`, c);
+  // not in `rtk git` → left alone (rtk has no handler; nudging wastes a turn)
+  for (const c of [
+    "git clone https://example.com/r.git", "git checkout main", "git switch -c x",
+    "git merge dev", "git rebase main", "git reset --hard", "git remote -v",
+    "git config user.name", "git init", "git tag v1", "git cherry-pick abc",
+  ])
+    assert.equal(rewriteCommand(c), null, c);
+  // pre-command options don't hide the subcommand
+  assert.equal(rewriteCommand("git -C /tmp/x status"), "rtk git -C /tmp/x status");
+  assert.equal(rewriteCommand("git -c core.pager=cat log"), "rtk git -c core.pager=cat log");
+  assert.equal(rewriteCommand("git --no-pager diff"), "rtk git --no-pager diff");
+  assert.equal(rewriteCommand("git -C /tmp/x clone u"), null);
+});
+
+test("PREFIXES matches rtk's proxied tools, not the unsupported ones", () => {
+  for (const p of ["git", "gh", "glab", "npm", "npx", "cargo", "docker", "kubectl", "oc", "aws", "pytest"])
+    assert.ok(PREFIXES.includes(p), `should include ${p}`);
+  for (const p of ["yarn", "bun", "make", "gradle", "bundle", "eslint", "curl", "playwright", "ls", "grep"])
+    assert.ok(!PREFIXES.includes(p), `should NOT include ${p}`);
 });
 
 test("keeps env-assignment prefixes in place", () => {
