@@ -54,7 +54,7 @@ Every plugin bundles the Headroom + codebase-memory MCP servers — they come **
 | **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` |
 | **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
 | **Grok Build** | `grok plugin install sipki-tech/scrooge-kit#plugins/grok` |
-| **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` — never point `agy plugin install` at the repo URL: agy bulk-installs every directory under `plugins/` |
+| **Antigravity** | `agy plugin install https://github.com/sipki-tech/scrooge-kit/plugins/antigravity` — the `/plugins/antigravity` subdir path is required; a bare repo URL bulk-installs every `plugins/` dir |
 | **OpenCode** | `opencode plugin @sipki-tech/scrooge-kit-opencode` (or add `"plugin": ["@sipki-tech/scrooge-kit-opencode"]` to `opencode.json` yourself) |
 
 Uninstall the same way: `/plugin uninstall`, `codex plugin remove scrooge-kit@scrooge-kit`, `grok plugin uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, remove the config entry (OpenCode). Update: re-run the marketplace/extension update command of the agent (`agy` has no update — re-install).

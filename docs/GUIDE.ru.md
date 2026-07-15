@@ -69,10 +69,9 @@ grok plugin install sipki-tech/scrooge-kit#plugins/grok
 
 ### Antigravity (agy)
 ```bash
-git clone https://github.com/sipki-tech/scrooge-kit
-agy plugin install ./scrooge-kit/plugins/antigravity
+agy plugin install https://github.com/sipki-tech/scrooge-kit/plugins/antigravity
 ```
-**Никогда** не запускайте `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-установит каждую папку под `plugins/` репозитория, то есть все агентские payload'ы. Команды `agy plugin update` нет; для обновления — pull и переустановка. Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom и codebase-memory прописаны и **включены** в `mcp_config.json`.
+Путь к поддиректории `/plugins/antigravity` **обязателен** — agy клонирует репо и ставит только этот плагин (GitHub web-путь `…/tree/main/plugins/antigravity` и фрагмент `#plugins/antigravity` тоже работают). **Голый** URL репо (`agy plugin install https://github.com/sipki-tech/scrooge-kit`) bulk-установит каждую папку под `plugins/`, то есть все агентские payload'ы — не надо так. (Локальный клон + `agy plugin install ./scrooge-kit/plugins/antigravity` тоже работает.) Команды `agy plugin update` нет; для обновления — переустановка. Хук работает в режиме **deny-подсказки** (хуки Antigravity не умеют менять args): в причине отказа — готовая команда `rtk …`, агент тут же повторяет с ней. Headroom и codebase-memory прописаны и **включены** в `mcp_config.json`.
 
 ### OpenCode
 ```bash

@@ -69,10 +69,9 @@ Installs the dedicated Grok plugin straight from the repo subdirectory. `grok pl
 
 ### Antigravity (agy)
 ```bash
-git clone https://github.com/sipki-tech/scrooge-kit
-agy plugin install ./scrooge-kit/plugins/antigravity
+agy plugin install https://github.com/sipki-tech/scrooge-kit/plugins/antigravity
 ```
-**Never** run `agy plugin install https://github.com/sipki-tech/scrooge-kit` — agy bulk-installs every directory under a repo's `plugins/`, i.e. all the agent payloads. There is no `agy plugin update`; to update, pull and re-install. The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom and codebase-memory are pre-registered and **enabled** in `mcp_config.json`.
+The `/plugins/antigravity` subdir path is **required** — agy clones the repo and installs just that plugin (the GitHub `…/tree/main/plugins/antigravity` web path and a `#plugins/antigravity` fragment work too). A **bare** repo URL (`agy plugin install https://github.com/sipki-tech/scrooge-kit`) bulk-installs every directory under `plugins/`, i.e. all the agent payloads — don't. (A local clone + `agy plugin install ./scrooge-kit/plugins/antigravity` also works.) There is no `agy plugin update`; to update, re-install. The hook runs in **deny-nudge** mode (Antigravity hooks can't mutate args): the deny reason contains the exact `rtk …` command, and the agent immediately retries with it. Headroom and codebase-memory are pre-registered and **enabled** in `mcp_config.json`.
 
 ### OpenCode
 ```bash

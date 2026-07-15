@@ -54,7 +54,7 @@
 | **Claude Code** | `/plugin marketplace add sipki-tech/scrooge-kit` → `/plugin install scrooge-kit@scrooge-kit` |
 | **Codex CLI** | `codex plugin marketplace add sipki-tech/scrooge-kit` → `codex plugin add scrooge-kit@scrooge-kit` |
 | **Grok Build** | `grok plugin install sipki-tech/scrooge-kit#plugins/grok` |
-| **Antigravity** | `git clone https://github.com/sipki-tech/scrooge-kit && agy plugin install ./scrooge-kit/plugins/antigravity` — никогда не давайте `agy plugin install` URL репозитория: agy bulk-установит каждую папку под `plugins/` |
+| **Antigravity** | `agy plugin install https://github.com/sipki-tech/scrooge-kit/plugins/antigravity` — путь к поддиректории `/plugins/antigravity` обязателен; голый URL репо ставит все папки `plugins/` |
 | **OpenCode** | `opencode plugin @sipki-tech/scrooge-kit-opencode` (или добавьте `"plugin": ["@sipki-tech/scrooge-kit-opencode"]` в `opencode.json` сами) |
 
 Удаление тем же путём: `/plugin uninstall`, `codex plugin remove scrooge-kit@scrooge-kit`, `grok plugin uninstall scrooge-kit`, `agy plugin uninstall scrooge-kit`, убрать запись из конфига (OpenCode). Обновление — командой update соответствующего менеджера (у `agy` update нет — переустановка).
