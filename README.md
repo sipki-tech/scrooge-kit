@@ -36,7 +36,7 @@ terminal command output ──► [rtk: PreToolUse rewrite hook] ──► agent
 big blobs / logs / files ──► [Headroom: MCP compress]      ──► LLM API        (−60–95% tokens)
 ```
 
-- **[rtk](https://github.com/rtk-ai/rtk)** — routes `git status` → `rtk git status` so output enters the context compressed, failures intact. On hosts whose hooks can mutate a command (Claude Code, Codex, OpenCode) the rewrite is silent; on hosts that can only allow/deny (Antigravity, Grok) the hook denies the raw command and nudges the agent to re-run it through rtk.
+- **[rtk](https://github.com/rtk-ai/rtk)** — routes `git status` → `rtk git status` so output enters the context compressed, failures intact. On hosts whose hooks can mutate a command (Claude Code, Codex, OpenCode) the rewrite is silent; on hosts that can only allow/deny (Antigravity, Grok) the hook denies the raw command and nudges the agent to re-run it through rtk. **Known limitation:** Grok does not currently execute plugin `PreToolUse` hooks (verified upstream behaviour, not a kit defect), so rtk enforcement is inert there — fail-open, and Grok's skill + MCP still work. rtk is verified live on Antigravity and Claude Code.
 - **[Headroom](https://github.com/headroomlabs-ai/headroom)** — reversible blob compression via MCP tools (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
 - **[codebase-memory](https://github.com/DeusData/codebase-memory-mcp)** — code-graph retrieval over MCP: it indexes the repo (158 languages via tree-sitter + hybrid LSP for 12), so the agent queries symbols, references and call-paths instead of reading whole files. Zero per-language setup; polyglot monorepos in a single index.
 - **scrooge-hygiene skill + rules** — selective reads, no raw logs, bypass etiquette.

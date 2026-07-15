@@ -65,7 +65,7 @@ Codex резолвит нативный `.agents/plugins/marketplace.json` ре�
 ```bash
 grok plugin install sipki-tech/scrooge-kit#plugins/grok
 ```
-Ставит выделенный Grok-плагин прямо из поддиректории репозитория. `grok plugin marketplace add sipki-tech/scrooge-kit` тоже работает (Grok читает Claude-маркетплейс), но резолвит Claude Code-сборку плагина — предпочитайте subdir-установку. Хук работает в режиме **deny-подсказки** (хуки Grok умеют только allow/deny, но не переписать команду): блокирует сырую dev-команду, а в причине отказа — готовая `rtk …` для повтора. Удаление: `grok plugin uninstall scrooge-kit`.
+Ставит выделенный Grok-плагин прямо из поддиректории репозитория. `grok plugin marketplace add sipki-tech/scrooge-kit` тоже работает (Grok читает Claude-маркетплейс), но резолвит Claude Code-сборку плагина — предпочитайте subdir-установку. Хук написан в режиме **deny-подсказки** (хуки Grok умеют только allow/deny, но не переписать команду): он блокировал бы сырую dev-команду и клал готовую `rtk …` в причину отказа. **Известное ограничение (проверено 2026-07-15):** Grok сейчас не исполняет плагинные хуки `PreToolUse` в headless (`grok -p`) — доказано маркер-эффектом на реальном хуке и минимальным контрольным плагином, который тоже не сработал — поэтому rtk-enforcement на Grok не действует. Это апстрим, fail-open; skill + Headroom/codebase-memory MCP работают. Удаление: `grok plugin uninstall scrooge-kit`.
 
 ### Antigravity (agy)
 ```bash

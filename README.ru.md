@@ -36,7 +36,7 @@
 блобы / логи / файлы ──► [Headroom: MCP-сжатие]        ──► LLM API          (−60–95% токенов)
 ```
 
-- **[rtk](https://github.com/rtk-ai/rtk)** — направляет `git status` → `rtk git status`, вывод попадает в контекст сжатым, падения на месте. Там, где хук хоста умеет мутировать команду (Claude Code, Codex, OpenCode) — переписывает тихо; там, где хост умеет только allow/deny (Antigravity, Grok) — блокирует сырую команду и подсказывает агенту перезапустить её через rtk.
+- **[rtk](https://github.com/rtk-ai/rtk)** — направляет `git status` → `rtk git status`, вывод попадает в контекст сжатым, падения на месте. Там, где хук хоста умеет мутировать команду (Claude Code, Codex, OpenCode) — переписывает тихо; там, где хост умеет только allow/deny (Antigravity, Grok) — блокирует сырую команду и подсказывает агенту перезапустить её через rtk. **Известное ограничение:** Grok сейчас не исполняет плагинные хуки `PreToolUse` (подтверждённое поведение апстрима, не дефект кита), поэтому rtk-enforcement там не действует — fail-open, а skill + MCP у Grok работают. rtk проверен вживую на Antigravity и Claude Code.
 - **[Headroom](https://github.com/headroomlabs-ai/headroom)** — обратимое сжатие блобов через MCP-инструменты (`headroom_compress` / `headroom_retrieve` / `headroom_stats`).
 - **[codebase-memory](https://github.com/DeusData/codebase-memory-mcp)** — граф-навигация по коду через MCP: индексирует репозиторий (158 языков через tree-sitter + hybrid LSP для 12), агент запрашивает символы, референсы и call-цепочки вместо чтения целых файлов. Ноль настройки на язык; polyglot-монорепо одним индексом.
 - **Скилл scrooge-hygiene + rules** — выборочное чтение, никаких сырых логов, этикет обходов.

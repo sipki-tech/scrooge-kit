@@ -65,7 +65,7 @@ Codex resolves the repo's native `.agents/plugins/marketplace.json` (dedicated `
 ```bash
 grok plugin install sipki-tech/scrooge-kit#plugins/grok
 ```
-Installs the dedicated Grok plugin straight from the repo subdirectory. `grok plugin marketplace add sipki-tech/scrooge-kit` also works (Grok reads the Claude marketplace) but resolves the Claude Code build of the plugin — prefer the subdir install. The hook runs in **deny-nudge** mode (Grok hooks can only allow/deny, not rewrite the command): it blocks a raw dev command and the deny reason carries the exact `rtk …` to retry. Uninstall: `grok plugin uninstall scrooge-kit`.
+Installs the dedicated Grok plugin straight from the repo subdirectory. `grok plugin marketplace add sipki-tech/scrooge-kit` also works (Grok reads the Claude marketplace) but resolves the Claude Code build of the plugin — prefer the subdir install. The hook is authored in **deny-nudge** mode (Grok hooks can only allow/deny, not rewrite the command): it would block a raw dev command and carry the exact `rtk …` to retry in the deny reason. **Known limitation (verified 2026-07-15):** Grok does not currently execute plugin `PreToolUse` hooks in headless (`grok -p`) — proven with a marker side-effect on the real hook and a minimal control plugin that also never fired — so rtk enforcement is inert on Grok. This is upstream, fail-open; the skill + Headroom/codebase-memory MCP still work. Uninstall: `grok plugin uninstall scrooge-kit`.
 
 ### Antigravity (agy)
 ```bash
