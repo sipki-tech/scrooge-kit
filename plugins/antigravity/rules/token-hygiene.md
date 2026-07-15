@@ -1,6 +1,10 @@
 # scrooge-kit: token hygiene
 
-- Prefix dev terminal commands (git, tests, builds, package managers, linters, docker, kubectl) with `rtk`: `rtk git status`, `rtk npm test`. Skip the prefix only when the `rtk` binary is missing or exact raw output matters — then prefix with `SCROOGE_RAW=1` and say why.
-- Read files selectively: locate the region first, read only that range; never re-read what you already saw. When the `codebase-memory` MCP tools are available, index once (`index_repository`) then navigate by graph (`search_graph`, `trace_path` inbound for references) instead of reading whole files.
-- Never paste full build/test logs; extract failing lines plus minimal context. Route huge blobs through the `headroom_compress` MCP tool when available (`headroom_retrieve` recovers originals).
-- Do not restate code you just wrote; reference the file and lines.
+Route anything large away from the main context (these cut input noise, never your reasoning):
+- **Repo code** → `codebase-memory` MCP: `index_repository` once, then `search_graph` / `trace_path` (inbound) / `get_code_snippet`. Don't read whole files.
+- **Command output you read** (git, short test/build) → prefix `rtk`: `rtk git status`, `rtk npm test`.
+- **Ballast output** (huge logs/dumps) → redirect to a scratch file, keep a preview + path; `grep`/range-read the detail later.
+- **A blob you must carry** → `headroom_compress` → hash → `headroom_retrieve`.
+- **A many-file question** → offload to a subagent (where available); it returns a summary, not the raw files.
+
+They compose: `rtk npm test | tee "$LOG"` (compressed view + raw on disk). Bypass with `SCROOGE_RAW=1` (say why) when exact raw output matters; `SCROOGE_RTK=off` disables for a session. Don't re-read what you saw; don't restate code you wrote.

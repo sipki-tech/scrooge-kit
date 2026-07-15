@@ -6,7 +6,7 @@
   },
   "description": "Token-saving plugins: rtk terminal-output compression, Headroom MCP blob compression, codebase-memory code-graph retrieval, token-hygiene skill.",
   "metadata": {
-    "version": "0.5.0"
+    "version": "0.6.0"
   },
   "plugins": [
     {

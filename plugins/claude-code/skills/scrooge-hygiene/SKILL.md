@@ -1,24 +1,43 @@
 ---
 name: scrooge-hygiene
-description: Token hygiene rules for every session — rtk-prefixed terminal commands, selective file reading, no full logs in context. Use always; especially before running commands or reading large files.
+description: Token hygiene for every session — route each large context input through its cheapest channel (rtk, scratch files, codebase-memory, Headroom, subagents). Use always; especially before running commands, reading files, or exploring the repo.
 ---
 
 # scrooge-hygiene — spend context on thinking, not on noise
 
 ## Goal
+Keep the context window full of signal. Anything large — command output, files, logs, blobs — enters the
+context only compressed, selectively, or not at all. Every lever here cuts **input noise**, never your
+reasoning: think as much as the task needs (constraining reasoning to save tokens degrades quality — that is
+explicitly not what this skill does).
 
-Keep the context window filled with signal. Terminal output, file contents, and logs enter the context only in compressed or selective form.
+## The one question — something large is about to enter my context: what is it?
 
-## Rules
+| Input | Route it through | Result |
+|---|---|---|
+| **Repo code** — symbols, references, function bodies | `codebase-memory` MCP: `index_repository` once, then `search_graph` / `trace_path` (direction inbound, for callers) / `get_code_snippet` | navigate the graph; never read whole files |
+| **Command output you want to read** — git, a short test/build | `rtk <cmd>` (`rtk git status`, `rtk npm test`) | you see it, compressed 60–90% |
+| **Command output that's mostly ballast** — a 2000-line log/dump | redirect to a scratch file (`cmd > "$(mktemp)"`), keep only a preview + the path; `grep`/range-read the detail later | not loaded into context; retrieved once, only if needed |
+| **A blob you must carry through context / between tools** | `headroom_compress` → hash → `headroom_retrieve` | reversibly compressed |
+| **A task that needs reading many files to answer one question** | offload to a subagent (where the host supports one) — it applies the rows above internally and returns a compact summary | raw files never touch the main context |
 
-1. **Terminal commands go through `rtk`.** Prefix dev commands (git, tests, builds, package managers, linters, docker, kubectl) with `rtk`: `rtk git status`, `rtk npm test`. If the `rtk` binary is missing, run the command as-is — never fail a task over the prefix. (When the scrooge-kit hook is installed it rewrites the command for you; the prefix habit is the fallback.)
-2. **rtk bypass.** When exact, unfiltered output matters (parsing a specific error, user explicitly asks for raw output, a critical pipeline where lost detail is unacceptable), prefix with `SCROOGE_RAW=1` and say why. Compression is a default, not a law.
-3. **Selective reading.** Do not read whole files when a range suffices. Locate the region first, then read only that region. When the `codebase-memory` MCP tools are available, index the repo once (`index_repository`), then navigate by graph queries — `search_graph` to locate a symbol, `trace_path` (direction inbound) for its callers/references, `get_code_snippet` for a body — instead of whole-file reads. It indexes polyglot/monorepos in one pass, no per-language setup. Re-reading a file you already saw is almost always waste.
-4. **No full logs.** Never paste complete build/test logs into the context. Extract the failing lines plus a few lines of surrounding context. For huge blobs, use the headroom MCP tools (`headroom_compress`, originals recoverable via `headroom_retrieve`) when configured.
-5. **No echo of code in prose.** After editing, do not restate the code you just wrote; reference the file and lines.
+## They compose — layers, not rivals
+- The subagent is the outer envelope; the other four are the tactics it (or you) use inside.
+- rtk and scratch combine on one command:
+  `rtk npm test | tee "$LOG"` → compressed view now, raw on disk for a targeted `grep -A5 FAIL "$LOG"` later.
+- Routing by input type keeps them from overlapping: code → codebase-memory, output-you-read → rtk,
+  output-ballast → scratch, carried-blob → Headroom, many-files → subagent.
 
-## Definition of Done for any task under this skill
+## Always
+- **Bypass:** when exact raw output matters (parsing a specific error, the user asks for raw output, a
+  pipeline where lost detail is unacceptable), prefix `SCROOGE_RAW=1` and say why. Compression is a default,
+  not a law. Turn rtk off for a session with `SCROOGE_RTK=off`. (Where the scrooge-kit hook is installed it
+  applies the `rtk` prefix for you; the habit is the fallback.)
+- **No re-reads:** re-reading a file or output you already saw is almost always waste.
+- **No echo of code:** after editing, don't restate the code you wrote — reference the file and lines.
 
-- Every dev command in the session either went through `rtk` (prefix or hook rewrite) or has a stated `SCROOGE_RAW=1` bypass reason.
-- No file was read in full when a targeted range would do.
-- No raw log longer than ~20 lines entered the context uncompressed.
+## Definition of done for any task under this skill
+- Every dev command went through `rtk` (prefix or hook rewrite) or has a stated `SCROOGE_RAW=1` reason.
+- No whole-file read where a range or a `codebase-memory` graph query would do.
+- No raw log longer than ~20 lines entered the context uncompressed (rtk, scratch, or Headroom instead).
+- Multi-file exploration was offloaded to a subagent, or there's a reason it wasn't.
