@@ -56,21 +56,19 @@ function gitSubcommand(tokensAfterGit) {
 const RAW_PREFIX_RE = /^(SCROOGE_RAW|KIT_RAW)=1\s/;
 const ENV_ASSIGNMENTS_RE = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)([\s\S]*)$/;
 
-// Returns the rtk-prefixed command, or null when no rewrite applies.
-// Inserting into the original string (not re-joining tokens) preserves
-// quoting and internal spacing.
-export function rewriteCommand(cmd, env = {}) {
-  if (!cmd || typeof cmd !== "string") return null;
-  const trimmed = cmd.trim();
-
-  if (env.SCROOGE_RTK === "off") return null;
-  if (trimmed === "rtk" || trimmed.startsWith("rtk ")) return null;
-  if (RAW_PREFIX_RE.test(trimmed)) return null;
-  // Compound/redirected commands: rewriting is risky, stay out of the way.
-  if (/[|;&><$`\n]/.test(trimmed)) return null;
+// Rewrite a SINGLE simple command (no shell operators). Returns the rtk-prefixed
+// string, or null when no rewrite applies. Inserting into the original string
+// (not re-joining tokens) preserves quoting and internal spacing.
+function rewriteSegment(seg, env) {
+  const t = seg.trim();
+  if (!t) return null;
+  if (t === "rtk" || t.startsWith("rtk ")) return null; // already prefixed
+  if (RAW_PREFIX_RE.test(t)) return null; // explicit bypass
+  // Any shell operator means this isn't a plain command — stay out of the way.
+  if (/[|;&<>$`\n]/.test(t)) return null;
 
   // Env-assignment prefixes don't change the command: NODE_ENV=test npm ...
-  const [, envPart, rest] = trimmed.match(ENV_ASSIGNMENTS_RE);
+  const [, envPart, rest] = t.match(ENV_ASSIGNMENTS_RE);
   const tokens = rest.split(/\s+/);
   const first = tokens[0] ?? "";
   if (!PREFIXES.includes(first)) return null;
@@ -79,4 +77,34 @@ export function rewriteCommand(cmd, env = {}) {
   if (first === "git" && !GIT_COMPRESSIBLE.has(gitSubcommand(tokens.slice(1)))) return null;
 
   return `${envPart}rtk ${rest}`;
+}
+
+// Returns the rtk-prefixed command, or null when no rewrite applies. Handles a
+// single command and a plain `A && B && …` chain (wrapping each dev segment),
+// but never restructures pipes/redirects/subshells — when in doubt, null.
+export function rewriteCommand(cmd, env = {}) {
+  if (!cmd || typeof cmd !== "string") return null;
+  const trimmed = cmd.trim();
+  if (env.SCROOGE_RTK === "off") return null;
+
+  if (trimmed.includes("&&")) {
+    // Only a quote-free `A && B && …` chain of simple commands is safe to split:
+    // a quote could hide a literal `&&`, and any other operator (| ; & < > $ ` ( ) { })
+    // in a segment means it isn't a plain command — bail rather than risk it.
+    if (/['"]/.test(trimmed)) return null;
+    const segments = trimmed.split("&&");
+    if (segments.some((s) => /[|;&<>$`(){}\n]/.test(s))) return null;
+    let changed = false;
+    const out = segments.map((s) => {
+      const r = rewriteSegment(s, env);
+      if (r !== null) {
+        changed = true;
+        return r;
+      }
+      return s.trim();
+    });
+    return changed ? out.join(" && ") : null; // null when no segment was a dev cmd
+  }
+
+  return rewriteSegment(trimmed, env);
 }

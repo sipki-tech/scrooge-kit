@@ -55,14 +55,37 @@ test("honors bypasses", () => {
   assert.equal(rewriteCommand("git status", { SCROOGE_RTK: "off" }), null);
 });
 
-test("skips already-prefixed, compound, and non-dev commands", () => {
+test("skips already-prefixed, piped, redirected, and non-dev commands", () => {
   assert.equal(rewriteCommand("rtk git status"), null);
   assert.equal(rewriteCommand("rtk"), null);
   assert.equal(rewriteCommand("git log | head -5"), null);
-  assert.equal(rewriteCommand("npm test && echo ok"), null);
   assert.equal(rewriteCommand("echo $HOME"), null);
   assert.equal(rewriteCommand("ls -la"), null);
   assert.equal(rewriteCommand("git log\ngit status"), null);
+});
+
+test("&&-chains: wrap each dev segment, but only when safe to split", () => {
+  // the reported case: a setup command chained before a dev command
+  assert.equal(rewriteCommand("ulimit -n 10240 && npm install"), "ulimit -n 10240 && rtk npm install");
+  assert.equal(rewriteCommand("cd foo && npm test"), "cd foo && rtk npm test");
+  // every dev segment gets wrapped independently
+  assert.equal(rewriteCommand("npm install && npm test"), "rtk npm install && rtk npm test");
+  assert.equal(rewriteCommand("npm test && echo ok"), "rtk npm test && echo ok");
+  assert.equal(rewriteCommand("git clone u && npm i"), "git clone u && rtk npm i");
+  assert.equal(rewriteCommand("NODE_ENV=test npm test && npm i"), "NODE_ENV=test rtk npm test && rtk npm i");
+  // no dev segment → nothing to do
+  assert.equal(rewriteCommand("cd foo && echo done"), null);
+  // any other operator, quotes, subshell, background, or redirect → bail entirely
+  assert.equal(rewriteCommand("npm run build 2>&1 && npm test"), null);
+  assert.equal(rewriteCommand("foo | npm test"), null);
+  assert.equal(rewriteCommand("(cd x && npm test)"), null);
+  assert.equal(rewriteCommand("npm test & npm start"), null);
+  assert.equal(rewriteCommand('git commit -m "a && b" && npm test'), null);
+  assert.equal(rewriteCommand("npm test && echo $HOME"), null);
+  // per-segment bypass: SCROOGE_RAW applies to its own segment only; the other still wraps
+  assert.equal(rewriteCommand("SCROOGE_RAW=1 npm test && npm i"), "SCROOGE_RAW=1 npm test && rtk npm i");
+  // SCROOGE_RTK=off disables the whole line
+  assert.equal(rewriteCommand("npm test && npm i", { SCROOGE_RTK: "off" }), null);
 });
 
 test("handles junk input", () => {
