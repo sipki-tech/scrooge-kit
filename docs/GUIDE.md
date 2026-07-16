@@ -86,7 +86,7 @@ Commands like `git status`, `npm test`, `cargo build`, `docker ps` silently beco
 The hook **refuses to rewrite** when rewriting could hurt:
 
 - `rtk` is not on PATH (a rewrite would fail the command)
-- the command is compound or redirected: `| ; & > < $ \`` or multi-line
+- the command uses a pipe, redirect, subshell, or quote (`|`, `;`, `>`, `<`, `$`, `()`) or is multi-line — **except** a plain `A && B` chain, whose dev segments are each wrapped (`ulimit … && rtk npm install`)
 - the command already starts with `rtk`
 - a bypass is active
 

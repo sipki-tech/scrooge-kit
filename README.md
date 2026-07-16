@@ -71,7 +71,7 @@ Uninstall the same way: `/plugin uninstall`, `codex plugin remove scrooge-kit@sc
 ## Guarantees
 
 - **Fail-open**: every hook catches everything and exits 0 — a bug costs savings, never a session.
-- **Never rewrites blind**: no rewrite when `rtk` is missing, the command is compound (`| ; && > $`), already prefixed, or bypassed.
+- **Never rewrites blind**: no rewrite when `rtk` is missing, the command uses a pipe/redirect/subshell/quote (`|`, `;`, `>`, `<`, `$`, `()`), is already prefixed, or is bypassed — **except** a plain `A && B` chain, whose dev segments each get wrapped (`ulimit … && rtk npm install`).
 - **Bypass**: `SCROOGE_RAW=1 <cmd>` for one raw command; `SCROOGE_RTK=off` for the session.
 - **Native lifecycle**: install, update, and uninstall go through each agent's own plugin manager — Scrooge Kit never edits your configs.
 
